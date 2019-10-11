@@ -21,7 +21,7 @@
 
         @test sort(ICSC)==sort(JCSR) && sort(JCSC)==sort(ICSR) && sort(VCSC)==sort(VCSR)
 
-        v = rand(size(A)[2])
+        v = rand(size(CSC)[2])
         @test CSC*v == CSR*v
     end
     
