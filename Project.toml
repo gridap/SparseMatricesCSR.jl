@@ -1,0 +1,13 @@
+name = "SparseMatrix"
+uuid = "a0a7dd2c-ebf4-11e9-1f05-cf50bc540ca1"
+authors = ["Víctor Sande <vsande@cimne.upc.edu>"]
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
