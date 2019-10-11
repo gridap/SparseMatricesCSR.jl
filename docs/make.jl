@@ -1,17 +1,17 @@
-using Documenter, SparseMatrix
+using Documenter, SparseMatricesCSR
 
 makedocs(;
-    modules=[SparseMatrix],
+    modules=[SparseMatricesCSR],
     format=Documenter.HTML(),
     pages=[
         "Home" => "index.md",
     ],
-    repo="https://github.com/gridap/SparseMatrix.jl/blob/{commit}{path}#L{line}",
-    sitename="SparseMatrix.jl",
+    repo="https://github.com/gridap/SparseMatricesCSR.jl/blob/{commit}{path}#L{line}",
+    sitename="SparseMatricesCSR.jl",
     authors="Víctor Sande <vsande@cimne.upc.edu>",
     assets=String[],
 )
 
 deploydocs(;
-    repo="github.com/gridap/SparseMatrix.jl",
+    repo="github.com/gridap/SparseMatricesCSR.jl",
 )

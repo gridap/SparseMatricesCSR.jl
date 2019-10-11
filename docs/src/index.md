@@ -1,8 +1,8 @@
-# SparseMatrix.jl
+# SparseMatricesCSR.jl
 
 ```@index
 ```
 
 ```@autodocs
-Modules = [SparseMatrix]
+Modules = [SparseMatricesCSR]
 ```
