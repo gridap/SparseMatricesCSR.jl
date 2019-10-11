@@ -1,4 +1,4 @@
-module SparseMatrix
+module SparseMatricesCSR
 
 using SparseArrays
 
