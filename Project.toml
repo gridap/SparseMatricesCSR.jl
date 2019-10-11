@@ -3,6 +3,9 @@ uuid = "a0a7dd2c-ebf4-11e9-1f05-cf50bc540ca1"
 authors = ["Víctor Sande <vsande@cimne.upc.edu>"]
 version = "0.1.0"
 
+[deps]
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+
 [compat]
 julia = "1"
 
