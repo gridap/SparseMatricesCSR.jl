@@ -19,7 +19,7 @@
         TCSC = sparse(J, I, V)
         TCSR = sparsecsr(J, I, V)
 
-        @test size(CSC)==size(CSR)==reverse(size(CSR.mat))
+        @test size(CSC)==size(CSR)==reverse(size(CSR.transpose))
         @test size(CSC)==size(CSR)==reverse(size(TCSC))==reverse(size(TCSC))
 
         @test [nzrange(CSC,col) for col in 1:size(CSC,2)] == [nzrange(TCSR,row) for row in 1:size(TCSR,1)]
