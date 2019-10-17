@@ -6,13 +6,13 @@
     for T in (Int32,Int64,Float32,Float64)
         I = rand(1:maxrows, maxnz)
         J = rand(1:maxcols, maxnz)
-        V = rand(1:T(maxnz),   maxnz)
+        V = rand(1:T(maxnz), maxnz)
         CSC = sparse(I, J, V)
         CSR = sparsecsr(I, J, V)
 
 
 
-        @test CSC==CSR
+        @test CSC == CSR
 
         @test nnz(CSC) == count(i->(i!=0), CSC) == nnz(CSR) == count(i->(i!=0), CSR)
 

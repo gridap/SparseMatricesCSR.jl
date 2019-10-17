@@ -70,6 +70,6 @@ and all elements of J must satisfy 1 <= J[k] <= n.
 Numerical zeros in (I, J, V) are retained as structural nonzeros; 
 to drop numerical zeros, use dropzeros!.
 """
-sparsecsr(I,J,kwargs...) = SparseMatrixCSR(sparse(J,I,kwargs...))
+sparsecsr(I,J,args...) = SparseMatrixCSR(sparse(J,I,args...))
 
 
