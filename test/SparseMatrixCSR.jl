@@ -10,8 +10,6 @@
         CSC = sparse(I, J, V)
         CSR = sparsecsr(I, J, V)
 
-
-
         @test CSC == CSR
 
         @test nnz(CSC) == count(i->(i!=0), CSC) == nnz(CSR) == count(i->(i!=0), CSR)

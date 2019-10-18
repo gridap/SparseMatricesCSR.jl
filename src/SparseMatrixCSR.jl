@@ -4,7 +4,8 @@
 
 Matrix type for storing sparse matrices in the
 Compressed Sparse Row format. The standard way
-of constructing SparseMatrixCSR is through the [`sparsecsr`](@ref) function.
+of constructing SparseMatrixCSR is through the 
+[`sparsecsr`](@ref) function.
 """
 struct SparseMatrixCSR{T,Ti<:Integer} <: AbstractSparseMatrix{T,Ti}
     transpose :: SparseMatrixCSC{T,Ti}
