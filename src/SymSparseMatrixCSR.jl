@@ -85,3 +85,14 @@ function symsparsecsr(I,J,V,m,n,combine)
     SymSparseMatrixCSR(sparse(vcat(J[indices],1:m),vcat(I[indices],1:m),vcat(V[indices],zeros(eltype(V),m)),m,m,combine))
 end
 
+
+"""
+    function push_coo!(::Type{SparseMatrixCSR},I,J,V,ik,jk,vk) 
+
+Inserts entries in COO vectors for further building a SymSparseMatrixCSR.
+"""
+function push_coo!(::Type{SymSparseMatrixCSR},I,J,V,ik,jk,vk) 
+    (ik<jk) && return
+    (push!(I, jk), push!(J, ik), push!(V, vk))
+end
+

@@ -8,8 +8,9 @@ import SparseArrays: nnz, getnzval, nzvalview, nonzeros, nzrange, findnz
 
 export SparseMatrixCSR
 export SymSparseMatrixCSR
-export sparsecsr, symsparsecsr, getrowptr, getcolval
+export push_coo!, sparsecsr, symsparsecsr, getrowptr, getcolval
 
+include("SparseMatrixCSC.jl")
 include("SparseMatrixCSR.jl")
 include("SymSparseMatrixCSR.jl")
 
