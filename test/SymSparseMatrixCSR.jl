@@ -4,12 +4,14 @@
     maxcols=5
 
     for T in (Int32,Int64,Float32,Float64)
-        I = vcat(rand(1:maxrows, maxnz),1:maxrows)
-        J = vcat(rand(1:maxcols, maxnz),1:maxcols)
-        V = vcat(rand(1:T(maxnz), maxnz), zeros(T,maxnz))
-        indices = [ i for i in 1:length(I) if !(I[i]<J[i])] # Lower triangle indices
-        SYMCSC = Symmetric(sparse(I[indices], J[indices], V[indices], maxrows, maxcols),:L)
-        SYMCSR = symsparsecsr(I[indices], J[indices], V[indices], maxrows, maxcols)
+        I = Vector{Int}()
+        J = Vector{Int}()
+        V = Vector{T}()
+        for (ik, jk, vk) in zip(vcat(rand(1:maxrows, maxnz),1:maxrows), vcat(rand(1:maxcols, maxnz),1:maxcols), vcat(rand(1:T(maxnz), maxnz), zeros(T,maxnz)))
+            push_coo!(SymSparseMatrixCSR,I,J,V,ik,jk,vk)
+        end
+        SYMCSC = Symmetric(sparse(I, J, V, maxrows, maxcols),:L)
+        SYMCSR = symsparsecsr(I, J, V, maxrows, maxcols)
 
         @test size(SYMCSC)==size(SYMCSR)
         @test SYMCSC == SYMCSR

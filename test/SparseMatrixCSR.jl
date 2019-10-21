@@ -4,9 +4,12 @@
     maxcols=5
 
     for T in (Int32,Int64,Float32,Float64)
-        I = rand(1:maxrows, maxnz)
-        J = rand(1:maxcols, maxnz)
-        V = rand(1:T(maxnz), maxnz)
+        I = Vector{Int}()
+        J = Vector{Int}()
+        V = Vector{T}()
+        for (ik, jk, vk) in zip(rand(1:maxrows, maxnz), rand(1:maxcols, maxnz), rand(1:T(maxnz), maxnz))
+            push_coo!(SparseMatrixCSR,I,J,V,ik,jk,vk)
+        end
         CSC = sparse(I, J, V)
         CSR = sparsecsr(I, J, V)
 

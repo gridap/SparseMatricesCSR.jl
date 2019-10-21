@@ -41,7 +41,7 @@ and any modifications to the returned vector will mutate A as well.
 nonzeros(S::SparseMatrixCSR) = S.transpose.nzval
 
 """
-    nzrange(S::SparseMatrixCSR, row::Integer)
+    nzrange(S::SparseMatrixCSR, row::Integer
 
 Return the range of indices to the structural nonzero values of a 
 sparse matrix row. 
@@ -73,12 +73,15 @@ to drop numerical zeros, use dropzeros!.
 """
 sparsecsr(I,J,args...) = SparseMatrixCSR(sparse(J,I,args...))
 
+
 """
     function push_coo!(::Type{SparseMatrixCSR},I,J,V,ik,jk,vk) 
 
 Inserts entries in COO vectors for further building a SparseMatrixCSR.
 """
-function push_coo!(::Type{SparseMatrixCSR},I,J,V,ik,jk,vk) 
-    (push!(I, jk), push!(J, ik), push!(V, vk))
+function push_coo!(::Type{SparseMatrixCSR},I::Vector,J::Vector,V::Vector,ik::Integer,jk::Integer,vk::Number)
+    (push!(I, ik), push!(J, jk), push!(V, vk))
 end
+
+
 

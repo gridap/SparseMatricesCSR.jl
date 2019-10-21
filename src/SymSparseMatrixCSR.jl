@@ -91,8 +91,8 @@ end
 
 Inserts entries in COO vectors for further building a SymSparseMatrixCSR.
 """
-function push_coo!(::Type{SymSparseMatrixCSR},I,J,V,ik,jk,vk) 
+function push_coo!(::Type{SymSparseMatrixCSR},I::Vector,J::Vector,V::Vector,ik::Integer,jk::Integer,vk::Number) 
     (ik<jk) && return
-    (push!(I, jk), push!(J, ik), push!(V, vk))
+    (push!(I, ik), push!(J, jk), push!(V, vk))
 end
 
