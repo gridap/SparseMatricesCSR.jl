@@ -4,7 +4,8 @@
 
 Matrix type for storing sparse matrices in the
 Compressed Sparse Row format. The standard way
-of constructing SparseMatrixCSR is through the [`sparsecsr`](@ref) function.
+of constructing SparseMatrixCSR is through the 
+[`sparsecsr`](@ref) function.
 """
 struct SparseMatrixCSR{T,Ti<:Integer} <: AbstractSparseMatrix{T,Ti}
     transpose :: SparseMatrixCSC{T,Ti}
@@ -40,7 +41,7 @@ and any modifications to the returned vector will mutate A as well.
 nonzeros(S::SparseMatrixCSR) = S.transpose.nzval
 
 """
-    nzrange(S::SparseMatrixCSR, row::Integer)
+    nzrange(S::SparseMatrixCSR, row::Integer
 
 Return the range of indices to the structural nonzero values of a 
 sparse matrix row. 
@@ -70,6 +71,17 @@ and all elements of J must satisfy 1 <= J[k] <= n.
 Numerical zeros in (I, J, V) are retained as structural nonzeros; 
 to drop numerical zeros, use dropzeros!.
 """
-sparsecsr(I,J,kwargs...) = SparseMatrixCSR(sparse(J,I,kwargs...))
+sparsecsr(I,J,args...) = SparseMatrixCSR(sparse(J,I,args...))
+
+
+"""
+    function push_coo!(::Type{SparseMatrixCSR},I,J,V,ik,jk,vk) 
+
+Inserts entries in COO vectors for further building a SparseMatrixCSR.
+"""
+function push_coo!(::Type{SparseMatrixCSR},I::Vector,J::Vector,V::Vector,ik::Integer,jk::Integer,vk::Number)
+    (push!(I, ik), push!(J, jk), push!(V, vk))
+end
+
 
 
