@@ -80,14 +80,12 @@ end
 
 function symsparsecsr(I,J,V,m,n,combine) 
     m == n || throw(DimensionMismatch("matrix is not square: dimensions are ($m, $n)"))
-    indices = [ i for i in 1:length(I) if !(I[i]<J[i])]
-    # Explicitly store diagonal zeros if needed
-    SymSparseMatrixCSR(sparse(vcat(J[indices],1:m),vcat(I[indices],1:m),vcat(V[indices],zeros(eltype(V),m)),m,m,combine))
+    SymSparseMatrixCSR(sparse(J,I,V,m,n,combine))
 end
 
 
 """
-    function push_coo!(::Type{SparseMatrixCSR},I,J,V,ik,jk,vk) 
+    function push_coo!(::Type{SymSparseMatrixCSR},I,J,V,ik,jk,vk) 
 
 Inserts entries in COO vectors for further building a SymSparseMatrixCSR.
 """
@@ -95,4 +93,27 @@ function push_coo!(::Type{SymSparseMatrixCSR},I::Vector,J::Vector,V::Vector,ik::
     (ik<jk) && return
     (push!(I, ik), push!(J, jk), push!(V, vk))
 end
+
+"""
+    function finalize_coo!(::Type{SymSparseMatrixCSR},I,J,V,m,n) 
+
+Check and insert diagonal entries in COO vectors if needed.
+"""
+function finalize_coo!(T::Type{SymSparseMatrixCSR},I::Vector,J::Vector,V::Vector, m::Integer, n::Integer)
+    m == n || throw(DimensionMismatch("matrix is not square: dimensions are ($m, $n)"))
+    touched = zeros(Bool,m)
+    for k in 1:length(I)
+        Ik = I[k]
+        Jk = J[k]
+        if Ik == Jk
+            touched[Ik] = true
+        end
+    end
+    for k in 1:m
+        if ! touched[k]
+            push_coo!(T,I,J,V,k,k,zero(eltype(V)))
+        end
+    end
+end
+
 
