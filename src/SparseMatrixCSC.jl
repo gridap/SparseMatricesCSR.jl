@@ -3,7 +3,7 @@
 
 Inserts entries in COO vectors for further building a SparseMatrixCSC.
 """
-function push_coo!(::Type{SparseMatrixCSC},I::Vector{Integer},J::Vector{Integer},V::Vector{Number},ik::Integer,jk::Integer,vk::Number)
+function push_coo!(::Type{SparseMatrixCSC},I::Vector,J::Vector,V::Vector,ik::Integer,jk::Integer,vk::Number)
     (push!(I, ik), push!(J, jk), push!(V, vk))
 end
 
@@ -12,7 +12,7 @@ end
 
 Inserts entries in COO vectors for further building a SparseMatrixCSC.
 """
-function push_coo!(I::Vector{Integer},J::Vector{Integer},V::Vector{Number},ik::Integer,jk::Integer,vk::Number)
+function push_coo!(I::Vector,J::Vector,V::Vector,ik::Integer,jk::Integer,vk::Number)
     push_coo!(SparseMatrixCSC,J,V,ik,jk,vk)
 end
 
@@ -21,7 +21,7 @@ end
 
 Check and insert diagonal entries in COO vectors if needed.
 """
-function finalize_coo!(::Type{SparseMatrixCSC},I::Vector{Integer},J::Vector{Integer},V::Vector{Number},m::Integer,n::Integer)
+function finalize_coo!(::Type{SparseMatrixCSC},I::Vector,J::Vector,V::Vector,m::Integer,n::Integer)
 end
 
 """
@@ -29,6 +29,6 @@ end
 
 Check and insert diagonal entries in COO vectors if needed.
 """
-function finalize_coo!(I::Vector{Integer},J::Vector{Integer},V::Vector{Number},m::Integer,n::Integer)
+function finalize_coo!(I::Vector,J::Vector,V::Vector,m::Integer,n::Integer)
     finalize_coo!(SparseMatrixCSC,I,J,V,m,n)
 end
