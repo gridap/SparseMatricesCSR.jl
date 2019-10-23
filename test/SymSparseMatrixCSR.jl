@@ -7,9 +7,10 @@
         I = Vector{Int}()
         J = Vector{Int}()
         V = Vector{T}()
-        for (ik, jk, vk) in zip(vcat(rand(1:maxrows, maxnz),1:maxrows), vcat(rand(1:maxcols, maxnz),1:maxcols), vcat(rand(1:T(maxnz), maxnz), zeros(T,maxnz)))
+        for (ik, jk, vk) in zip(rand(1:maxrows, maxnz), rand(1:maxcols, maxnz), rand(1:T(maxnz), maxnz) )
             push_coo!(SymSparseMatrixCSR,I,J,V,ik,jk,vk)
         end
+        finalize_coo!(SymSparseMatrixCSR,I,J,V,maxrows, maxcols)
         SYMCSC = Symmetric(sparse(I, J, V, maxrows, maxcols),:L)
         SYMCSR = symsparsecsr(I, J, V, maxrows, maxcols)
 

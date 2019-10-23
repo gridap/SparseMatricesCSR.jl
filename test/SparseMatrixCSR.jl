@@ -10,15 +10,16 @@
         for (ik, jk, vk) in zip(rand(1:maxrows, maxnz), rand(1:maxcols, maxnz), rand(1:T(maxnz), maxnz))
             push_coo!(SparseMatrixCSR,I,J,V,ik,jk,vk)
         end
-        CSC = sparse(I, J, V)
-        CSR = sparsecsr(I, J, V)
+        finalize_coo!(SparseMatrixCSR,I,J,V,maxcols,maxrows)
+        CSC = sparse(I, J, V, maxcols,maxrows)
+        CSR = sparsecsr(I, J, V,maxcols,maxrows)
 
         @test CSC == CSR
 
         @test nnz(CSC) == count(i->(i!=0), CSC) == nnz(CSR) == count(i->(i!=0), CSR)
 
-        TCSC = sparse(J, I, V)
-        TCSR = sparsecsr(J, I, V)
+        TCSC = sparse(J, I, V, maxrows, maxcols)
+        TCSR = sparsecsr(J, I, V, maxrows, maxcols)
 
         @test size(CSC)==size(CSR)==reverse(size(CSR.transpose))
         @test size(CSC)==size(CSR)==reverse(size(TCSC))==reverse(size(TCSC))

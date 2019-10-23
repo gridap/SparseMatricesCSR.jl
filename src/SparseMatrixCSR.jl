@@ -83,5 +83,14 @@ function push_coo!(::Type{SparseMatrixCSR},I::Vector,J::Vector,V::Vector,ik::Int
     (push!(I, ik), push!(J, jk), push!(V, vk))
 end
 
+"""
+    function finalize_coo!(::Type{SparseMatrixCSR},I,J,V,m,n) 
+
+Check and insert diagonal entries in COO vectors if needed.
+"""
+function finalize_coo!(::Type{SparseMatrixCSR},I::Vector,J::Vector,V::Vector,m::Integer,n::Integer)
+end
+
+
 
 
