@@ -11,7 +11,7 @@
             push_coo!(SymSparseMatrixCSR,I,J,V,ik,jk,vk)
         end
         finalize_coo!(SymSparseMatrixCSR,I,J,V,maxrows, maxcols)
-        SYMCSC = Symmetric(sparse(I, J, V, maxrows, maxcols),:L)
+        SYMCSC = Symmetric(sparse(I, J, V, maxrows, maxcols),:U)
         SYMCSR = symsparsecsr(I, J, V, maxrows, maxcols)
 
         @test size(SYMCSC)==size(SYMCSR)

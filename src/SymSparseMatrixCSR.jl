@@ -14,7 +14,7 @@ end
 
 show(io::IO, A::SymSparseMatrixCSR) = show(io, A.lowertrian)
 size(A::SymSparseMatrixCSR) = size(A.lowertrian)
-getindex(A::SymSparseMatrixCSR, x::Integer, y::Integer) = getindex(A.lowertrian,min(x,y),max(x,y))
+getindex(A::SymSparseMatrixCSR, x::Integer, y::Integer) = getindex(A.lowertrian,max(x,y),min(x,y))
 
 """
     nnz(S::SymSparseMatrixCSR)
@@ -88,9 +88,10 @@ end
     function push_coo!(::Type{SymSparseMatrixCSR},I,J,V,ik,jk,vk) 
 
 Inserts entries in COO vectors for further building a SymSparseMatrixCSR.
+It stores only the upper triangle, ignoring entries with (ik>jk) coordinates.
 """
 function push_coo!(::Type{SymSparseMatrixCSR},I::Vector,J::Vector,V::Vector,ik::Integer,jk::Integer,vk::Number) 
-    (ik<jk) && return
+    (ik>jk) && return
     (push!(I, ik), push!(J, jk), push!(V, vk))
 end
 
