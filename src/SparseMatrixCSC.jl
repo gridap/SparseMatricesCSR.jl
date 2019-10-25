@@ -13,7 +13,7 @@ end
 Inserts entries in COO vectors for further building a SparseMatrixCSC.
 """
 function push_coo!(I::Vector,J::Vector,V::Vector,ik::Integer,jk::Integer,vk::Number)
-    push_coo!(SparseMatrixCSC,J,V,ik,jk,vk)
+    push_coo!(SparseMatrixCSC,I,J,V,ik,jk,vk)
 end
 
 """
