@@ -1,27 +1,43 @@
 
 """
-    struct SparseMatrixCSR{T,Ti<:Integer} <: AbstractSparseMatrix{T,Ti}
+    struct SparseMatrixCSR{Idx,T,Ti<:Integer} <: AbstractSparseMatrix{T,Ti}
 
-Matrix type for storing sparse matrices in the
-Compressed Sparse Row format. The standard way
-of constructing SparseMatrixCSR is through the 
+Matrix type for storing Idx-based sparse matrices 
+in the Compressed Sparse Row format. The standard 
+way of constructing SparseMatrixCSR is through the 
 [`sparsecsr`](@ref) function.
 """
-struct SparseMatrixCSR{T,Ti<:Integer} <: AbstractSparseMatrix{T,Ti}
+struct SparseMatrixCSR{Idx,T,Ti} <: AbstractSparseMatrix{T,Ti}
     transpose :: SparseMatrixCSC{T,Ti}
+    function SparseMatrixCSR{Idx}(transpose::SparseMatrixCSC{T,Ti}) where {Idx,T,Ti}
+        transpose.colptr .+= Idx-1
+        transpose.rowval .+= Idx-1
+        new{Idx,T,Ti}(transpose)
+    end
 end
 
 
+SparseMatrixCSR(transpose::SparseMatrixCSC) = SparseMatrixCSR{1}(transpose)
 show(io::IO, A::SparseMatrixCSR) = show(io, A.transpose)
 size(A::SparseMatrixCSR) = (A.transpose.n, A.transpose.m)
-getindex(A::SparseMatrixCSR, x::Integer, y::Integer) = getindex(A.transpose,y,x)
+
+
+function getindex(A::SparseMatrixCSR{Idx,T,Ti}, i0::Integer, i1::Integer) where {Idx,T,Ti}
+    if !(Idx <= i0 <= A.transpose.n && Idx <= i1 <= A.transpose.m); throw(BoundsError()); end
+    r1 = Int(A.transpose.colptr[i0]+1-Idx)
+    r2 = Int(A.transpose.colptr[i0+1]-Idx)
+    (r1 > r2) && return zero(T)
+    i1_= i1-1+Idx
+    r1 = searchsortedfirst(A.transpose.rowval, i1_, r1, r2, Base.Order.Forward)
+    ((r1 > r2) || (A.transpose.rowval[r1] != i1_)) ? zero(T) : A.transpose.nzval[r1]
+end
 
 """
     nnz(S::SparseMatrixCSR)
 
 Returns the number of stored (filled) elements in a sparse array.
 """
-nnz(S::SparseMatrixCSR) = nnz(S.transpose)
+nnz(S::SparseMatrixCSR{Idx}) where {Idx} = nnz(S.transpose)-Idx+1
 
 """
     count(pred, S::SparseMatrixCSR) -> Integer
@@ -46,7 +62,7 @@ nonzeros(S::SparseMatrixCSR) = S.transpose.nzval
 Return the range of indices to the structural nonzero values of a 
 sparse matrix row. 
 """
-nzrange(S::SparseMatrixCSR, row::Integer) = nzrange(S.transpose, row)
+nzrange(S::SparseMatrixCSR{I}, row::Integer) where {I} = nzrange(S.transpose, row+1-I)
 
 """
     findnz(S::SparseMatrixCSR)
@@ -72,6 +88,8 @@ Numerical zeros in (I, J, V) are retained as structural nonzeros;
 to drop numerical zeros, use dropzeros!.
 """
 sparsecsr(I,J,args...) = SparseMatrixCSR(sparse(J,I,args...))
+sparsecsr(::Type{SparseMatrixCSR}, I,J,args...) = SparseMatrixCSR(sparse(J,I,args...))
+sparsecsr(::Type{SparseMatrixCSR{idx}}, I,J,args...) where {idx} = SparseMatrixCSR{idx}(sparse(J,I,args...))
 
 
 """
@@ -79,17 +97,22 @@ sparsecsr(I,J,args...) = SparseMatrixCSR(sparse(J,I,args...))
 
 Inserts entries in COO vectors for further building a SparseMatrixCSR.
 """
-function push_coo!(::Type{SparseMatrixCSR},I::Vector,J::Vector,V::Vector,ik::Integer,jk::Integer,vk::Number)
+function push_coo!(::Type{SparseMatrixCSR{Idx}},
+    I::Vector,J::Vector,V::Vector,ik::Integer,jk::Integer,vk::Number) where {Idx}
     (push!(I, ik), push!(J, jk), push!(V, vk))
 end
+push_coo!(SparseMatrixCSR, args...) = push_coo!(SparseMatrixCSR{1}, args...) 
 
 """
     function finalize_coo!(::Type{SparseMatrixCSR},I,J,V,m,n) 
 
 Check and insert diagonal entries in COO vectors if needed.
 """
-function finalize_coo!(::Type{SparseMatrixCSR},I::Vector,J::Vector,V::Vector,m::Integer,n::Integer)
+function finalize_coo!(::Type{SparseMatrixCSR{Idx}},
+    I::Vector,J::Vector,V::Vector,m::Integer,n::Integer) where {Idx}
 end
+
+finalize_coo!(SparseMatrixCSR, args...) = finalize_coo!(SparseMatrixCSR{1}, args...) 
 
 
 
