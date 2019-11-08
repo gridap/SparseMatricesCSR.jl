@@ -62,7 +62,7 @@ nonzeros(S::SparseMatrixCSR) = S.transpose.nzval
 Return the range of indices to the structural nonzero values of a 
 sparse matrix row. 
 """
-nzrange(S::SparseMatrixCSR{I}, row::Integer) where {I} = nzrange(S.transpose, row+1-I)
+nzrange(S::SparseMatrixCSR{Idx}, row::Integer) where {Idx} = nzrange(S.transpose, row+1-Idx).+(1-Idx)
 
 """
     findnz(S::SparseMatrixCSR)

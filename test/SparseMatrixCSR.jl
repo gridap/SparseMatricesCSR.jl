@@ -26,8 +26,8 @@
             @test size(CSC)==size(CSR)==reverse(size(CSR.transpose))
             @test size(CSC)==size(CSR)==reverse(size(TCSC))==reverse(size(TCSC))
 
-            @test [nzrange(CSC,col) for col in 1:size(CSC,2)] == [nzrange(TCSR,row).+offset for row in Idx:size(TCSR,1)-offset]
-            @test [nzrange(CSR,row).+offset for row in Idx:size(CSR,1)-offset] == [nzrange(TCSC,col) for col in 1:size(TCSC,2)]
+            @test [nzrange(CSC,col) for col in 1:size(CSC,2)] == [nzrange(TCSR,row) for row in Idx:size(TCSR,1)-offset]
+            @test [nzrange(CSR,row) for row in Idx:size(CSR,1)-offset] == [nzrange(TCSC,col) for col in 1:size(TCSC,2)]
 
             @test nonzeros(CSC) == nonzeros(TCSR) && nonzeros(CSR) == nonzeros(TCSC) 
 
