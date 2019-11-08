@@ -44,7 +44,7 @@ nnz(S::SparseMatrixCSR{Idx}) where {Idx} = nnz(S.transpose)-Idx+1
 
 Count the number of elements in S for which predicate pred returns true. 
 """
-count(pred, S::SparseMatrixCSR) = count(pred, S.transpose)
+count(pred, S::SparseMatrixCSR) = count(pred, nonzeros(S))
 
 """
     nonzeros(S::SparseMatrixCSR)
@@ -71,7 +71,23 @@ Return a tuple (I, J, V) where I and J are the row and column indices
 of the stored ("structurally non-zero") values in sparse matrix A, 
 and V is a vector of the values.
 """
-findnz(S::SparseMatrixCSR) = findnz(S.transpose)
+function findnz(S::SparseMatrixCSR{Idx,Tv,Ti}) where {Idx,Tv,Ti}
+    numnz = nnz(S)
+    I = Vector{Ti}(undef, numnz)
+    J = Vector{Ti}(undef, numnz)
+    V = Vector{Tv}(undef, numnz)
+
+    count = 1
+    offset = 1-Idx
+    @inbounds for col = Idx : S.transpose.n-offset, k = nzrange(S,col)
+        I[count] = S.transpose.rowval[k]+offset
+        J[count] = col+offset
+        V[count] = S.transpose.nzval[k]
+        count += 1
+    end
+
+    return (I, J, V)
+end
 
 """
     sparsecsr(I, J, V, [m, n, combine])

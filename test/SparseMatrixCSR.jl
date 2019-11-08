@@ -18,7 +18,8 @@
 
             @test CSC == CSR
 
-            @test nnz(CSC) == nnz(CSR)
+            @test nnz(CSC) == count(i->(i!=0), CSC) == nnz(CSR) == count(i->(i!=0), CSR)
+
 
             TCSC = sparse(J, I, V, maxrows, maxcols)
             TCSR = sparsecsr(SparseMatrixCSR{Idx}, J, I, V, maxrows, maxcols)
@@ -30,6 +31,11 @@
             @test [nzrange(CSR,row) for row in Idx:size(CSR,1)-offset] == [nzrange(TCSC,col) for col in 1:size(TCSC,2)]
 
             @test nonzeros(CSC) == nonzeros(TCSR) && nonzeros(CSR) == nonzeros(TCSC) 
+
+            ICSC,JCSC,VCSC= findnz(CSC)
+            ICSR,JCSR,VCSR= findnz(CSR)
+
+            @test sort(ICSC)==sort(JCSR) && sort(JCSC)==sort(ICSR) && sort(VCSC)==sort(VCSR)
 
             v = rand(size(CSC)[2])
             @test CSC*v == CSR*v
