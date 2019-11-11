@@ -78,7 +78,7 @@ can be useful in conjunction with iterating over structural
 nonzero values. See also [`nonzeros`](@ref) and [`nzrange`](@ref).
 """
 
-colvals(S::SparseMatrixCSR) = colvals(S.uppertrian)
+colvals(S::SymSparseMatrixCSR) = colvals(S.uppertrian)
 
 
 """
@@ -122,7 +122,7 @@ function push_coo!(::Type{SymSparseMatrixCSR{Bi}},
     (ik>jk) && return
     (push!(I, ik), push!(J, jk), push!(V, vk))
 end
-push_coo!(SymSparseMatrixCSR, args...) = push_coo!(SymSparseMatrixCSR{1}, args...) 
+push_coo!(::Type{SymSparseMatrixCSR}, args...) = push_coo!(SymSparseMatrixCSR{1}, args...) 
 
 """
     function finalize_coo!(::Type{SymSparseMatrixCSR},I,J,V,m,n) 
@@ -147,6 +147,28 @@ function finalize_coo!(T::Type{SymSparseMatrixCSR{Bi}},
     end
 end
 
-finalize_coo!(SymSparseMatrixCSR, args...) = finalize_coo!(SymSparseMatrixCSR{1}, args...) 
+finalize_coo!(::Type{SymSparseMatrixCSR}, args...) = finalize_coo!(SymSparseMatrixCSR{1}, args...) 
+
+
+"""
+    function mul!(y::AbstractVector,A::SymSparseMatrixCSR,v::AbstractVector{T}) where {T}
+
+Calculates the matrix-vector product ``Av`` and stores the result in `y`,
+overwriting the existing value of `y`. 
+"""
+function mul!(y::AbstractVector,A::SymSparseMatrixCSR,v::AbstractVector{T}) where {T}
+    A.uppertrian.n == size(v, 1) || throw(DimensionMismatch())
+    A.uppertrian.m == size(y, 1) || throw(DimensionMismatch())
+
+    y .= zero(T)
+    for row = 1:size(y, 1)
+        @inbounds for nz in nzrange(A,row)
+            col = A.uppertrian.colval[nz]-A.uppertrian.offset
+            y[row] += A.uppertrian.nzval[nz]*v[col]
+            (row!=col) && y[col] += A.uppertrian.nzval[nz]*v[row]
+        end
+    end
+    return y
+end
 
 

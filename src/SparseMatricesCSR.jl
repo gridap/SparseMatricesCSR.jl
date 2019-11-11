@@ -4,11 +4,12 @@ using SparseArrays
 using LinearAlgebra
 
 import Base: size, getindex, show, count
-import SparseArrays: nnz, getnzval, nzvalview, nonzeros, nzrange, findnz
+import LinearAlgebra: mul!
+import SparseArrays: nnz, getnzval, nzvalview, nonzeros, nzrange, findnz, rowvals
 
 export SparseMatrixCSR
 export SymSparseMatrixCSR
-export push_coo!, finalize_coo!, sparsecsr, symsparsecsr, colval
+export push_coo!, finalize_coo!, sparsecsr, symsparsecsr, colvals
 
 include("SparseMatrixCSC.jl")
 include("SparseMatrixCSR.jl")

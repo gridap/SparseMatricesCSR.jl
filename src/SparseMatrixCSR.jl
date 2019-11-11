@@ -111,7 +111,6 @@ CSR sparse matrices does not contain raw row values.
 It contains row pointers instead that can be accessed
 by using [`nzrange`](@ref).
 """
-
 rowvals(S::SparseMatrixCSR) = error("CSR sparse matrix does not contain raw row values")
 
 """
@@ -159,7 +158,7 @@ function push_coo!(::Type{SparseMatrixCSR{Bi}},
     I::Vector,J::Vector,V::Vector,ik::Integer,jk::Integer,vk::Number) where {Bi}
     (push!(I, ik), push!(J, jk), push!(V, vk))
 end
-push_coo!(SparseMatrixCSR, args...) = push_coo!(SparseMatrixCSR{1}, args...) 
+push_coo!(::Type{SparseMatrixCSR}, args...) = push_coo!(SparseMatrixCSR{1}, args...) 
 
 """
     function finalize_coo!(::Type{SparseMatrixCSR},I,J,V,m,n) 
@@ -169,8 +168,27 @@ Check and insert diagonal entries in COO vectors if needed.
 function finalize_coo!(::Type{SparseMatrixCSR{Bi}},
     I::Vector,J::Vector,V::Vector,m::Integer,n::Integer) where {Bi}
 end
-finalize_coo!(SparseMatrixCSR, args...) = finalize_coo!(SparseMatrixCSR{1}, args...) 
+finalize_coo!(::Type{SparseMatrixCSR}, args...) = finalize_coo!(SparseMatrixCSR{1}, args...) 
 
 
 
+"""
+    function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector{T}) where {T}
+
+Calculates the matrix-vector product ``Av`` and stores the result in `y`,
+overwriting the existing value of `y`. 
+"""
+function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector{T}) where {T}
+    A.n == size(v, 1) || throw(DimensionMismatch())
+    A.m == size(y, 1) || throw(DimensionMismatch())
+
+    y .= zero(T)
+    for row = 1:size(y, 1)
+        @inbounds for nz in nzrange(A,row)
+            col = A.colval[nz]-A.offset
+            y[row] += A.nzval[nz]*v[col]
+        end
+    end
+    return y
+end
 
