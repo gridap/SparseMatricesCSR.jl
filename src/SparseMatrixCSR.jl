@@ -104,7 +104,7 @@ function findnz(S::SparseMatrixCSR{Bi,Tv,Ti}) where {Bi,Tv,Ti}
 end
 
 """
-    rowvals(S::SparseMatrixCSC)
+    rowvals(S::SparseMatrixCSR)
 
 Return an error. 
 CSR sparse matrices does not contain raw row values.
@@ -112,10 +112,10 @@ It contains row pointers instead that can be accessed
 by using [`nzrange`](@ref).
 """
 
-rowvals(S::SparseMatrixCSC) = error("CSR sparse matrix does not contain raw row values")
+rowvals(S::SparseMatrixCSR) = error("CSR sparse matrix does not contain raw row values")
 
 """
-    colvals(S::SparseMatrixCSC)
+    colvals(S::SparseMatrixCSR)
 
 Return a vector of the col indices of S. 
 Any modifications to the returned vector will mutate S as well. 
@@ -124,7 +124,7 @@ can be useful in conjunction with iterating over structural
 nonzero values. See also [`nonzeros`](@ref) and [`nzrange`](@ref).
 """
 
-colvals(S::SparseMatrixCSC) = S.colval
+colvals(S::SparseMatrixCSR) = S.colval
 
 """
     sparsecsr(I, J, V, [m, n, combine])
