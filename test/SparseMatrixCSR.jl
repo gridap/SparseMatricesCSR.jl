@@ -11,9 +11,9 @@
             for (ik, jk, vk) in zip(rand(1:maxrows, maxnz), rand(1:maxcols, maxnz), rand(1:T(maxnz), maxnz))
                 push_coo!(SparseMatrixCSR,I,J,V,ik,jk,vk)
             end
-            finalize_coo!(SparseMatrixCSR,I,J,V,maxcols,maxrows)
-            CSC = sparse(I, J, V, maxcols,maxrows)
-            CSR = sparsecsr(SparseMatrixCSR{Bi},I, J, V,maxcols,maxrows)
+            finalize_coo!(SparseMatrixCSR,I,J,V,maxrows,maxcols)
+            CSC = sparse(I, J, V, maxrows,maxcols)
+            CSR = sparsecsr(SparseMatrixCSR{Bi},I, J, V,maxrows,maxcols)
 
             @test CSC == CSR
 

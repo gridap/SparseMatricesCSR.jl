@@ -30,15 +30,15 @@ end
 
 
 SparseMatrixCSR(transpose::SparseMatrixCSC{Tv,Ti}) where {Tv,Ti} = 
-        SparseMatrixCSR{1,Tv,Ti}(transpose.m, transpose.n, transpose.colptr, transpose.rowval, transpose.nzval)
+        SparseMatrixCSR{1,Tv,Ti}(transpose.n, transpose.m, transpose.colptr, transpose.rowval, transpose.nzval)
 SparseMatrixCSR{Bi}(transpose::SparseMatrixCSC{Tv,Ti}) where {Bi,Tv,Ti} = 
-        SparseMatrixCSR{Bi,Tv,Ti}(transpose.m, transpose.n, transpose.colptr, transpose.rowval, transpose.nzval)
+        SparseMatrixCSR{Bi,Tv,Ti}(transpose.n, transpose.m, transpose.colptr, transpose.rowval, transpose.nzval)
 show(io::IO, S::SparseMatrixCSR) = show(io, S)
 size(S::SparseMatrixCSR) = (S.m, S.n)
 
 
 function getindex(S::SparseMatrixCSR{Bi,Tv,Ti}, i0::Integer, i1::Integer) where {Bi,Tv,Ti}
-    if !(Bi <= i1 <= S.m && Bi <= i0 <= S.n); throw(BoundsError()); end
+    if !(Bi <= i0 <= S.m && Bi <= i1 <= S.n); throw(BoundsError()); end
     r1 = Int(S.rowptr[i0]-S.offset)
     r2 = Int(S.rowptr[i0+1]-Bi)
     (r1 > r2) && return zero(Tv)
@@ -48,7 +48,7 @@ function getindex(S::SparseMatrixCSR{Bi,Tv,Ti}, i0::Integer, i1::Integer) where 
 end
 
 """
-    nnz(S::SparseMatrixCSR)
+    nnz(S::SparseMatrixCSR{Bi}) where {Bi}
 
 Returns the number of stored (filled) elements in a sparse array.
 """
@@ -72,7 +72,7 @@ and any modifications to the returned vector will mutate S as well.
 nonzeros(S::SparseMatrixCSR) = S.nzval
 
 """
-    nzrange(S::SparseMatrixCSR, row::Integer
+    nzrange(S::SparseMatrixCSR{Bi}, row::Integer) where {Bi}
 
 Return the range of indices to the structural nonzero values of a 
 sparse matrix row. 
@@ -80,7 +80,7 @@ sparse matrix row.
 nzrange(S::SparseMatrixCSR{Bi}, row::Integer) where {Bi} = S.rowptr[row]-S.offset:S.rowptr[row+1]-Bi
 
 """
-    findnz(S::SparseMatrixCSR)
+    function findnz(S::SparseMatrixCSR{Bi,Tv,Ti})
 
 Return a tuple (I, J, V) where I and J are the row and column indices 
 of the stored ("structurally non-zero") values in sparse matrix A, 
@@ -104,6 +104,29 @@ function findnz(S::SparseMatrixCSR{Bi,Tv,Ti}) where {Bi,Tv,Ti}
 end
 
 """
+    rowvals(S::SparseMatrixCSC)
+
+Return an error. 
+CSR sparse matrices does not contain raw row values.
+It contains row pointers instead that can be accessed
+by using [`nzrange`](@ref).
+"""
+
+rowvals(S::SparseMatrixCSC) = error("CSR sparse matrix does not contain raw row values")
+
+"""
+    colvals(S::SparseMatrixCSC)
+
+Return a vector of the col indices of S. 
+Any modifications to the returned vector will mutate S as well. 
+Providing access to how the co,l indices are stored internally 
+can be useful in conjunction with iterating over structural 
+nonzero values. See also [`nonzeros`](@ref) and [`nzrange`](@ref).
+"""
+
+colvals(S::SparseMatrixCSC) = S.colval
+
+"""
     sparsecsr(I, J, V, [m, n, combine])
 
 Create a sparse matrix S of dimensions m x n such that S[I[k], J[k]] = V[k]. 
@@ -117,9 +140,14 @@ and all elements of J must satisfy 1 <= J[k] <= n.
 Numerical zeros in (I, J, V) are retained as structural nonzeros; 
 to drop numerical zeros, use dropzeros!.
 """
-sparsecsr(I,J,args...) = SparseMatrixCSR(sparse(J,I,args...))
-sparsecsr(::Type{SparseMatrixCSR},I,J,args...) = sparsecsr(I,J,args...)
-sparsecsr(::Type{SparseMatrixCSR{Bi}}, I,J,args...) where {Bi} = SparseMatrixCSR{Bi}(sparse(J,I,args...))
+sparsecsr(I,J,args...) = 
+        SparseMatrixCSR(sparse(J,I,args...))
+sparsecsr(::Type{SparseMatrixCSR},I,J,args...) = 
+        sparsecsr(I,J,args...)
+sparsecsr(::Type{SparseMatrixCSR{Bi}},I,J,args...) where {Bi} = 
+        SparseMatrixCSR{Bi}(sparse(J,I,args...))
+sparsecsr(::Type{SparseMatrixCSR{Bi}},I,J,V,m,n,args...) where {Bi} = 
+        SparseMatrixCSR{Bi}(sparse(J,I,V,n,m,args...))
 
 
 """
