@@ -172,3 +172,33 @@ function mul!(y::AbstractVector,A::SymSparseMatrixCSR,v::AbstractVector{T}) wher
 end
 
 
+"""
+    function hasrowmajororder(::Type{SymSparseMatrixCSR})
+
+Check if values are stored in row-major order.
+Return true.
+"""
+hasrowmajororder(::SymSparseMatrixCSR) = true
+
+"""
+    function hascolmajororder(::Type{SymSparseMatrixCSR})
+
+Check if values are stored in col-major order.
+Return false.
+"""
+hascolmajororder(::SymSparseMatrixCSR) = false
+
+"""
+    function getptr(S::SymSparseMatrixCSR)
+
+Return rows pointer.
+"""
+getptr(S::SymSparseMatrixCSR) = getptr(S.uppertrian)
+
+"""
+    function getindices(S::SymSparseMatrixCSR)
+
+Return column indices.
+"""
+getindices(S::SymSparseMatrixCSR) = colvals(S)
+

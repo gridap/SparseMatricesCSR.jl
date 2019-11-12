@@ -32,3 +32,36 @@ Check and insert diagonal entries in COO vectors if needed.
 function finalize_coo!(I::Vector,J::Vector,V::Vector,m::Integer,n::Integer)
     finalize_coo!(SparseMatrixCSC,I,J,V,m,n)
 end
+
+
+"""
+    function hasrowmajororder(::Type{SparseMatrixCSC})
+
+Check if values are stored in row-major order.
+Return false.
+"""
+hasrowmajororder(::SparseMatrixCSC) = false
+
+"""
+    function hascolmajororder(::Type{SparseMatrixCSC})
+
+Check if values are stored in col-major order.
+Return true.
+"""
+hascolmajororder(::SparseMatrixCSC) = true
+
+"""
+    function getptr(S::SparseMatrixCSC)
+
+Return columns pointer.
+"""
+getptr(S::SparseMatrixCSC) = S.colptr
+
+"""
+    function getvals(S::SparseMatrixCSC)
+
+Return row indices.
+"""
+getindices(S::SparseMatrixCSC) = rowvals(S)
+
+

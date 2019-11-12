@@ -192,3 +192,33 @@ function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector{T}) where {
     return y
 end
 
+
+"""
+    function hasrowmajororder(::Type{SparseMatrixCSR})
+
+Check if values are stored in row-major order.
+Return true.
+"""
+hasrowmajororder(::SparseMatrixCSR) = true
+
+"""
+    function hascolmajororder(::Type{SparseMatrixCSR})
+
+Check if values are stored in col-major order.
+Return false.
+"""
+hascolmajororder(::SparseMatrixCSR) = false
+
+"""
+    function getptr(S::SparseMatrixCSR)
+
+Return rows pointer.
+"""
+getptr(S::SparseMatrixCSR) = S.rowptr
+
+"""
+    function getindices(S::SparseMatrixCSR)
+
+Return column indices.
+"""
+getindices(S::SparseMatrixCSR) = colvals(S)

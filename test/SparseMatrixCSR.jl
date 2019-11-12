@@ -16,9 +16,12 @@
             CSR = sparsecsr(SparseMatrixCSR{Bi},I, J, V,maxrows,maxcols)
 
             @test CSC == CSR
-
             @test nnz(CSC) == count(!iszero, CSC) == nnz(CSR) == count(!iszero, CSR)
 
+            @test hasrowmajororder(CSR) == true
+            @test hascolmajororder(CSR) == false
+            @test getptr(CSR)           == CSR.rowptr
+            @test getindices(CSR)       == colvals(CSR)
 
             TCSC = sparse(J, I, V, maxrows, maxcols)
             TCSR = sparsecsr(SparseMatrixCSR{Bi}, J, I, V, maxrows, maxcols)

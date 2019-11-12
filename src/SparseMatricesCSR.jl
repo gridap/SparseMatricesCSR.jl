@@ -10,6 +10,7 @@ import SparseArrays: nnz, getnzval, nzvalview, nonzeros, nzrange, findnz, rowval
 export SparseMatrixCSR
 export SymSparseMatrixCSR
 export push_coo!, finalize_coo!, sparsecsr, symsparsecsr, colvals
+export hasrowmajororder, hascolmajororder, getptr, getindices
 
 include("SparseMatrixCSC.jl")
 include("SparseMatrixCSR.jl")

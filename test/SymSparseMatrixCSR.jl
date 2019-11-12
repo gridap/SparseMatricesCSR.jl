@@ -18,6 +18,11 @@
             @test size(SYMCSC)==size(SYMCSR)
             @test SYMCSC == SYMCSR
 
+            @test hasrowmajororder(SYMCSR) == true
+            @test hascolmajororder(SYMCSR) == false
+            @test getptr(SYMCSR)           == SYMCSR.uppertrian.rowptr
+            @test getindices(SYMCSR)       == colvals(SYMCSR)
+
             @test nnz(SYMCSC.data) == nnz(SYMCSR.uppertrian) <= nnz(SYMCSR) 
             @test count(!iszero, SYMCSC.data) == count(!iszero, SYMCSR.uppertrian)
 
