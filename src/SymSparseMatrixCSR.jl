@@ -165,7 +165,7 @@ function mul!(y::AbstractVector,A::SymSparseMatrixCSR,v::AbstractVector{T}) wher
         @inbounds for nz in nzrange(A,row)
             col = A.uppertrian.colval[nz]-A.uppertrian.offset
             y[row] += A.uppertrian.nzval[nz]*v[col]
-            row != col && y[col] += A.uppertrian.nzval[nz]*v[row]
+            row != col && (y[col] += A.uppertrian.nzval[nz]*v[row])
         end
     end
     return y
