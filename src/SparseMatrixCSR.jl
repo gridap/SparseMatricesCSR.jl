@@ -33,8 +33,19 @@ SparseMatrixCSR(transpose::SparseMatrixCSC{Tv,Ti}) where {Tv,Ti} =
         SparseMatrixCSR{1,Tv,Ti}(transpose.n, transpose.m, transpose.colptr, transpose.rowval, transpose.nzval)
 SparseMatrixCSR{Bi}(transpose::SparseMatrixCSC{Tv,Ti}) where {Bi,Tv,Ti} = 
         SparseMatrixCSR{Bi,Tv,Ti}(transpose.n, transpose.m, transpose.colptr, transpose.rowval, transpose.nzval)
-show(io::IO, S::SparseMatrixCSR) = show(io, S)
 size(S::SparseMatrixCSR) = (S.m, S.n)
+
+function show(io::IO, ::MIME"text/plain", S::SparseMatrixCSR)
+    xnnz = nnz(S)
+    print(io, S.m, "×", S.n, " ", typeof(S), " with ", xnnz, " stored ",
+              xnnz == 1 ? "entry" : "entries")
+    if xnnz != 0
+        print(io, ":")
+        show(IOContext(io, :typeinfo => eltype(S)), S)
+    end
+end
+show(io::IO, S::SparseMatrixCSR) = Base.show(convert(IOContext, io), S::SparseMatrixCSR)
+show(io::IOContext, S::SparseMatrixCSR) = dump(S)
 
 
 function getindex(S::SparseMatrixCSR{Bi,Tv,Ti}, i0::Integer, i1::Integer) where {Bi,Tv,Ti}
