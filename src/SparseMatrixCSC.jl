@@ -27,7 +27,7 @@ end
 """
     function finalize_coo!(I,J,V,m,n) 
 
-Check and insert diagonal entries in COO vectors if needed.
+Finalize COO arrays for building a SparseMatrixCSC.
 """
 function finalize_coo!(I::Vector,J::Vector,V::Vector,m::Integer,n::Integer)
     finalize_coo!(SparseMatrixCSC,I,J,V,m,n)
@@ -40,7 +40,8 @@ end
 Check if values are stored in row-major order.
 Return false.
 """
-hasrowmajororder(::SparseMatrixCSC) = false
+hasrowmajororder(::Type{SparseMatrixCSC}) = false
+hasrowmajororder(a::SparseMatrixCSC) = hasrowmajororder(SparseMatrixCSC)
 
 """
     function hascolmajororder(::Type{SparseMatrixCSC})
@@ -48,7 +49,8 @@ hasrowmajororder(::SparseMatrixCSC) = false
 Check if values are stored in col-major order.
 Return true.
 """
-hascolmajororder(::SparseMatrixCSC) = true
+hascolmajororder(::Type{SparseMatrixCSC}) = true
+hascolmajororder(a::SparseMatrixCSC) = hascolmajororder(SparseMatrixCSC)
 
 """
     function getptr(S::SparseMatrixCSC)

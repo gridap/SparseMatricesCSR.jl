@@ -8,19 +8,20 @@ way of constructing SparseMatrixCSR is through the
 [`sparsecsr`](@ref) function.
 """
 struct SparseMatrixCSR{Bi,Tv,Ti} <: AbstractSparseMatrix{Tv,Ti}
-    offset :: Int             # Bi-index offset
+    offset :: Int             # Bi-index offset (Bi-1)
     m      :: Int             # Number of columns
     n      :: Int             # Number of rows
-    rowptr :: Vector{Ti}      # Row i is in rowptr[i]:(rowptr[i+1]-1)
-    colval :: Vector{Ti}      # Col indices of stored values
+    rowptr :: Vector{Ti}      # Row i is in (rowptr[i]+offset):(rowptr[i+1]-Bi)
+    colval :: Vector{Ti}      # Col indices (with base Bi) of stored values
     nzval  :: Vector{Tv}      # Stored values, typically nonzeros
 
-    function SparseMatrixCSR{Bi,Tv,Ti}(m::Integer, n::Integer, rowptr::Vector{Ti}, colval::Vector{Ti},
+    function SparseMatrixCSR{Bi}(m::Integer, n::Integer, rowptr::Vector{Ti}, colval::Vector{Ti},
                                     nzval::Vector{Tv}) where {Bi,Tv,Ti<:Integer}
         @noinline throwsz(str, lbl, k) =
             throw(ArgumentError("number of $str ($lbl) must be ≥ 0, got $k"))
         m < 0 && throwsz("rows", 'm', m)
         n < 0 && throwsz("columns", 'n', n)
+        rowptr[m+1] == length(nzval) && throwsz("nnz", "rowptr[m+1]", length(nzval))
         offset = Bi-1
         rowptr .+= offset
         colval .+= offset
@@ -32,7 +33,7 @@ end
 SparseMatrixCSR(transpose::SparseMatrixCSC{Tv,Ti}) where {Tv,Ti} = 
         SparseMatrixCSR{1,Tv,Ti}(transpose.n, transpose.m, transpose.colptr, transpose.rowval, transpose.nzval)
 SparseMatrixCSR{Bi}(transpose::SparseMatrixCSC{Tv,Ti}) where {Bi,Tv,Ti} = 
-        SparseMatrixCSR{Bi,Tv,Ti}(transpose.n, transpose.m, transpose.colptr, transpose.rowval, transpose.nzval)
+        SparseMatrixCSR{Bi}(transpose.n, transpose.m, transpose.colptr, transpose.rowval, transpose.nzval)
 size(S::SparseMatrixCSR) = (S.m, S.n)
 
 function show(io::IO, ::MIME"text/plain", S::SparseMatrixCSR)
@@ -44,12 +45,59 @@ function show(io::IO, ::MIME"text/plain", S::SparseMatrixCSR)
         show(IOContext(io, :typeinfo => eltype(S)), S)
     end
 end
-show(io::IO, S::SparseMatrixCSR) = Base.show(convert(IOContext, io), S::SparseMatrixCSR)
-show(io::IOContext, S::SparseMatrixCSR) = dump(S)
+show(io::IO, S::SparseMatrixCSR) = show(convert(IOContext, io), S::SparseMatrixCSR)
+#show(io::IOContext, S::SparseMatrixCSR) = dump(S)
+
+function Base.show(io::IOContext, S::SparseMatrixCSR)
+    nnz(S) == 0 && return show(io, MIME("text/plain"), S)
+
+    ioc = IOContext(io, :compact => true)
+    function _format_line(r, col, padr, padc)
+        print(ioc, "\n  [", rpad(S.colval[r], padr), ", ", lpad(col, padc), "]  =  ")
+        if isassigned(S.nzval, Int(r))
+            show(ioc, S.nzval[r])
+        else
+            print(ioc, Base.undef_ref_str)
+        end
+    end
+
+    function _get_cols(from, to)
+        idx = eltype(S.rowptr)[]
+        c = searchsortedlast(S.rowptr, from)
+        for i = from:to
+            while i == S.rowptr[c+1]
+                c +=1
+            end
+            push!(idx, c)
+        end
+        idx
+    end
+
+    rows = displaysize(io)[1] - 4 # -4 from [Prompt, header, newline after elements, new prompt]
+    if !get(io, :limit, false) || rows >= nnz(S) # Will the whole matrix fit when printed?
+        cols = _get_cols(1, nnz(S))
+        padr, padc = ndigits.((maximum(S.colval[1:nnz(S)]), cols[end]))
+        _format_line.(1:nnz(S), cols, padr, padc)
+    else
+        if rows <= 2
+            print(io, "\n  \u22ee")
+            return
+        end
+        s1, e1 = 1, div(rows - 1, 2) # -1 accounts for \vdots
+        s2, e2 = nnz(S) - (rows - 1 - e1) + 1, nnz(S)
+        cols1, cols2 = _get_cols(s1, e1), _get_cols(s2, e2)
+        padr = ndigits(max(maximum(S.colval[s1:e1]), maximum(S.colval[s2:e2])))
+        padc = ndigits(cols2[end])
+        _format_line.(s1:e1, cols1, padr, padc)
+        print(io, "\n  \u22ee")
+        _format_line.(s2:e2, cols2, padr, padc)
+    end
+    return
+end
 
 
 function getindex(S::SparseMatrixCSR{Bi,Tv,Ti}, i0::Integer, i1::Integer) where {Bi,Tv,Ti}
-    if !(Bi <= i0 <= S.m && Bi <= i1 <= S.n); throw(BoundsError()); end
+    if !(1 <= i0 <= S.m && 1 <= i1 <= S.n); throw(BoundsError()); end
     r1 = Int(S.rowptr[i0]-S.offset)
     r2 = Int(S.rowptr[i0+1]-Bi)
     (r1 > r2) && return zero(Tv)
@@ -63,12 +111,12 @@ end
 
 Returns the number of stored (filled) elements in a sparse array.
 """
-nnz(S::SparseMatrixCSR{Bi}) where {Bi} = S.rowptr[S.m+1]-Bi
+nnz(S::SparseMatrixCSR{Bi}) where {Bi} = length(nonzeros(S))
 
 """
     count(pred, S::SparseMatrixCSR) -> Integer
 
-Count the number of elements in S for which predicate pred returns true. 
+Count the number of elements in nonzeros(S) for which predicate pred returns true. 
 """
 count(pred, S::SparseMatrixCSR) = count(pred, nonzeros(S))
 
@@ -104,11 +152,13 @@ function findnz(S::SparseMatrixCSR{Bi,Tv,Ti}) where {Bi,Tv,Ti}
     V = Vector{Tv}(undef, numnz)
 
     count = 1
-    @inbounds for row = 1 : S.m, k = nzrange(S,row)
-        I[count] = S.colval[k]-S.offset
-        J[count] = row
-        V[count] = S.nzval[k]
-        count += 1
+    @inbounds for row in 1:S.m
+        @inbounds for k in nzrange(S,row)
+            I[count] = S.colval[k]-S.offset
+            J[count] = row
+            V[count] = S.nzval[k]
+            count += 1
+        end
     end
 
     return (I, J, V)
@@ -147,8 +197,7 @@ If the combine function is not supplied, combine defaults to +
 unless the elements of V are Booleans in which case combine defaults to |. 
 All elements of I must satisfy 1 <= I[k] <= m, 
 and all elements of J must satisfy 1 <= J[k] <= n. 
-Numerical zeros in (I, J, V) are retained as structural nonzeros; 
-to drop numerical zeros, use dropzeros!.
+Numerical zeros in (I, J, V) are retained as structural nonzeros.
 """
 sparsecsr(I,J,args...) = 
         SparseMatrixCSR(sparse(J,I,args...))
@@ -165,21 +214,20 @@ sparsecsr(::Type{SparseMatrixCSR{Bi}},I,J,V,m,n,args...) where {Bi} =
 
 Inserts entries in COO vectors for further building a SparseMatrixCSR.
 """
-function push_coo!(::Type{SparseMatrixCSR{Bi}},
+function push_coo!(::Type{SparseMatrixCSR},
     I::Vector,J::Vector,V::Vector,ik::Integer,jk::Integer,vk::Number) where {Bi}
     (push!(I, ik), push!(J, jk), push!(V, vk))
 end
-push_coo!(::Type{SparseMatrixCSR}, args...) = push_coo!(SparseMatrixCSR{1}, args...) 
+
 
 """
     function finalize_coo!(::Type{SparseMatrixCSR},I,J,V,m,n) 
 
-Check and insert diagonal entries in COO vectors if needed.
+Finalize COO arrays for building a SparseMatrixCSR.
 """
-function finalize_coo!(::Type{SparseMatrixCSR{Bi}},
-    I::Vector,J::Vector,V::Vector,m::Integer,n::Integer) where {Bi}
+function finalize_coo!(::Type{SparseMatrixCSR},
+    I::Vector,J::Vector,V::Vector,m::Integer,n::Integer) 
 end
-finalize_coo!(::Type{SparseMatrixCSR}, args...) = finalize_coo!(SparseMatrixCSR{1}, args...) 
 
 
 
@@ -203,6 +251,8 @@ function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector{T}) where {
     return y
 end
 
+*(A::SparseMatrixCSR, v::Vector) = (y = similar(v,A.n);mul!(y,A,v))
+
 
 """
     function hasrowmajororder(::Type{SparseMatrixCSR})
@@ -210,7 +260,8 @@ end
 Check if values are stored in row-major order.
 Return true.
 """
-hasrowmajororder(::SparseMatrixCSR) = true
+hasrowmajororder(::Type{SparseMatrixCSR}) = true
+hasrowmajororder(a::SparseMatrixCSR) = hasrowmajororder(SparseMatrixCSR)
 
 """
     function hascolmajororder(::Type{SparseMatrixCSR})
@@ -218,7 +269,8 @@ hasrowmajororder(::SparseMatrixCSR) = true
 Check if values are stored in col-major order.
 Return false.
 """
-hascolmajororder(::SparseMatrixCSR) = false
+hascolmajororder(::Type{SparseMatrixCSR}) = false
+hascolmajororder(a::SparseMatrixCSR) = hascolmajororder(SparseMatrixCSR)
 
 """
     function getptr(S::SparseMatrixCSR)

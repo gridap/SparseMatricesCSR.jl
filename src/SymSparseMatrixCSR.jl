@@ -12,7 +12,18 @@ struct SymSparseMatrixCSR{Bi,T,Ti<:Integer} <: AbstractSparseMatrix{T,Ti}
 end
 
 
-show(io::IO, A::SymSparseMatrixCSR) = show(io, A.uppertrian)
+function show(io::IO, ::MIME"text/plain", S::SymSparseMatrixCSR)
+    xnnz = nnz(S)
+    print(io, S.uppertrian.m, "×", S.uppertrian.n, " ", 
+              typeof(S), " with ", xnnz, " stored ",
+              xnnz == 1 ? "entry" : "entries")
+    if xnnz != 0
+        print(io, ":")
+        show(IOContext(io, :typeinfo => eltype(S)), S)
+    end
+end
+show(io::IO, S::SymSparseMatrixCSR) = show(io, S.uppertrian)
+
 size(A::SymSparseMatrixCSR) = size(A.uppertrian)
 getindex(A::SymSparseMatrixCSR, x::Integer, y::Integer) = getindex(A.uppertrian,min(x,y),max(x,y))
 
@@ -26,7 +37,7 @@ nnz(S::SymSparseMatrixCSR) = nnz(S.uppertrian)
 """
     count(pred, S::SymSparseMatrixCSR) -> Integer
 
-Count the number of elements in S for which predicate pred returns true. 
+Count the number of elements in nonzeros(S) for which predicate pred returns true. 
 """
 count(pred, S::SymSparseMatrixCSR) = count(pred, S.uppertrian)
 
@@ -92,8 +103,7 @@ maximum(I) and maximum(J) respectively.
 If the combine function is not supplied, combine defaults to +.
 All elements of I must satisfy 1 <= I[k] <= m, 
 and all elements of J must satisfy 1 <= J[k] <= n. 
-Numerical zeros in (I, J, V) are retained as structural nonzeros; 
-to drop numerical zeros, use dropzeros!.
+Numerical zeros in (I, J, V) are retained as structural nonzeros.
 """
 function symsparsecsr(T::Type{SymSparseMatrixCSR{Bi}},I,J,V,args...)  where {Bi}
     m = length(args)>0 ? args[1] : isempty(I) ? 0 : Int(maximum(I))
@@ -117,20 +127,21 @@ symsparsecsr(I,J,V,args...) =
 Inserts entries in COO vectors for further building a SymSparseMatrixCSR.
 It stores only the upper triangle, ignoring entries with (ik>jk) coordinates.
 """
-function push_coo!(::Type{SymSparseMatrixCSR{Bi}},
-        I::Vector,J::Vector,V::Vector,ik::Integer,jk::Integer,vk::Number) where {Bi}
+function push_coo!(::Type{SymSparseMatrixCSR},
+        I::Vector,J::Vector,V::Vector,ik::Integer,jk::Integer,vk::Number)
     (ik>jk) && return
     (push!(I, ik), push!(J, jk), push!(V, vk))
 end
-push_coo!(::Type{SymSparseMatrixCSR}, args...) = push_coo!(SymSparseMatrixCSR{1}, args...) 
+
 
 """
     function finalize_coo!(::Type{SymSparseMatrixCSR},I,J,V,m,n) 
 
+Finalize COO arrays for building a SymSparseMatrixCSR.
 Check and insert diagonal entries in COO vectors if needed.
 """
-function finalize_coo!(T::Type{SymSparseMatrixCSR{Bi}},
-        I::Vector,J::Vector,V::Vector, m::Integer, n::Integer) where {Bi}
+function finalize_coo!(T::Type{SymSparseMatrixCSR},
+        I::Vector,J::Vector,V::Vector, m::Integer, n::Integer) 
     m == n || throw(DimensionMismatch("matrix is not square: dimensions are ($m, $n)"))
     touched = zeros(Bool,m)
     for k in 1:length(I)
@@ -146,8 +157,6 @@ function finalize_coo!(T::Type{SymSparseMatrixCSR{Bi}},
         end
     end
 end
-
-finalize_coo!(::Type{SymSparseMatrixCSR}, args...) = finalize_coo!(SymSparseMatrixCSR{1}, args...) 
 
 
 """
@@ -171,6 +180,7 @@ function mul!(y::AbstractVector,A::SymSparseMatrixCSR,v::AbstractVector{T}) wher
     return y
 end
 
+*(A::SymSparseMatrixCSR, v::Vector) = (y = similar(v,A.uppertrian.n);mul!(y,A,v))
 
 """
     function hasrowmajororder(::Type{SymSparseMatrixCSR})
@@ -178,7 +188,8 @@ end
 Check if values are stored in row-major order.
 Return true.
 """
-hasrowmajororder(::SymSparseMatrixCSR) = true
+hasrowmajororder(::Type{SymSparseMatrixCSR}) = true
+hasrowmajororder(a::SymSparseMatrixCSR) = hasrowmajororder(SymSparseMatrixCSR)
 
 """
     function hascolmajororder(::Type{SymSparseMatrixCSR})
@@ -186,7 +197,8 @@ hasrowmajororder(::SymSparseMatrixCSR) = true
 Check if values are stored in col-major order.
 Return false.
 """
-hascolmajororder(::SymSparseMatrixCSR) = false
+hascolmajororder(::Type{SymSparseMatrixCSR}) = false
+hascolmajororder(a::SymSparseMatrixCSR) = hascolmajororder(SymSparseMatrixCSR)
 
 """
     function getptr(S::SymSparseMatrixCSR)

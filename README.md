@@ -9,8 +9,6 @@ Compressed Sparse Row (CSR) sparse matrix implementations.
 
 It includes `SparseMatrixCSR` and `SymSparseMatrixCSR` wrappers.
 
-CSR wrappers relies on `SparseMatrixCSC` native Julia type.
-
 ## Basic Usage
 
 ```julia
