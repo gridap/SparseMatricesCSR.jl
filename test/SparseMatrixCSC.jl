@@ -13,6 +13,11 @@
         finalize_coo!(I,J,V,maxcols,maxrows)
         CSC = sparse(I, J, V, maxcols,maxrows)
 
+        @test hasrowmajororder(CSC) == false
+        @test hascolmajororder(CSC) == true
+        @test getptr(CSC)           == CSC.colptr
+        @test getindices(CSC)       == rowvals(CSC)
+
         for col = 1:maxcols
             for j in nzrange(CSC, col)
                 @test nonzeros(CSC)[j] == CSC[rowvals(CSC)[j], col]
@@ -21,7 +26,7 @@
 
         @test size(CSC) == (maxrows,maxcols)
 
-        @test nnz(CSC) == count(i->(i!=0), CSC) <= maxnz
+        @test nnz(CSC) == count(!iszero, CSC) <= maxnz
 
     end
     
