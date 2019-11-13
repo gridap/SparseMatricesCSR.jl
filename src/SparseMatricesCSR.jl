@@ -17,7 +17,7 @@ This module contains:
     + `getindices`: Return the indices array of a SparseMatrix (`rowval` or `colval` depending on the SparseMatrix type)
 
   - Overloaded procedures:
-    + `+`: SparseMatrix-Vector product.
+    + `*`: SparseMatrix-Vector product.
     + `mul!`: SparseMatrix-Vector product.
     + `nnz`: Return the number of stored (filled) elements in a sparse array.
     + `nonzeros`: Return `nzval` array.
