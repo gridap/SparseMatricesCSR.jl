@@ -48,12 +48,12 @@ end
 show(io::IO, S::SparseMatrixCSR) = show(convert(IOContext, io), S::SparseMatrixCSR)
 #show(io::IOContext, S::SparseMatrixCSR) = dump(S)
 
-function Base.show(io::IOContext, S::SparseMatrixCSR)
+function show(io::IOContext, S::SparseMatrixCSR{Bi}) where{Bi}
     nnz(S) == 0 && return show(io, MIME("text/plain"), S)
 
     ioc = IOContext(io, :compact => true)
     function _format_line(r, col, padr, padc)
-        print(ioc, "\n  [", rpad(S.colval[r], padr), ", ", lpad(col, padc), "]  =  ")
+        print(ioc, "\n  [", rpad(col, padr), ", ", lpad(S.colval[r], padc), "]  =  ")
         if isassigned(S.nzval, Int(r))
             show(ioc, S.nzval[r])
         else
@@ -75,9 +75,9 @@ function Base.show(io::IOContext, S::SparseMatrixCSR)
 
     rows = displaysize(io)[1] - 4 # -4 from [Prompt, header, newline after elements, new prompt]
     if !get(io, :limit, false) || rows >= nnz(S) # Will the whole matrix fit when printed?
-        cols = _get_cols(1, nnz(S))
+        cols = _get_cols(Bi, nnz(S)+S.offset)
         padr, padc = ndigits.((maximum(S.colval[1:nnz(S)]), cols[end]))
-        _format_line.(1:nnz(S), cols, padr, padc)
+        _format_line.(1:nnz(S), cols.+S.offset, padr, padc)
     else
         if rows <= 2
             print(io, "\n  \u22ee")
@@ -85,7 +85,7 @@ function Base.show(io::IOContext, S::SparseMatrixCSR)
         end
         s1, e1 = 1, div(rows - 1, 2) # -1 accounts for \vdots
         s2, e2 = nnz(S) - (rows - 1 - e1) + 1, nnz(S)
-        cols1, cols2 = _get_cols(s1, e1), _get_cols(s2, e2)
+        cols1, cols2 = _get_cols(s1+S.offset, e1+S.offset), _get_cols(s2+S.offset, e2+S.offset)
         padr = ndigits(max(maximum(S.colval[s1:e1]), maximum(S.colval[s2:e2])))
         padc = ndigits(cols2[end])
         _format_line.(s1:e1, cols1, padr, padc)
