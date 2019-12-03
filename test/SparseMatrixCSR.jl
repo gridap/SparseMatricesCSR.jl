@@ -15,6 +15,8 @@
             CSC = sparse(I, J, V, maxrows,maxcols)
             CSR = sparsecsr(SparseMatrixCSR{Bi},I, J, V,maxrows,maxcols)
 
+            display(CSR)
+
             @test CSC == CSR
 
             @test convert(SparseMatrixCSR{Bi}, CSR) === CSR
