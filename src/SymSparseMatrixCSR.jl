@@ -214,3 +214,17 @@ Return column indices.
 """
 getindices(S::SymSparseMatrixCSR) = colvals(S)
 
+"""
+    function convert(::Type{SymSparseMatrixCSR}, x::SymSparseMatrixCSR)
+
+Convert x to a value of type SymSparseMatrixCSR.
+"""
+convert(::Type{SymSparseMatrixCSR}, x::SymSparseMatrixCSR)  = convert(SymSparseMatrixCSR{1}, x)
+
+function convert(::Type{SymSparseMatrixCSR{Bi}}, x::SymSparseMatrixCSR{Bj}) where {Bi,Bj}
+    if Bi == Bj
+        return x
+    else
+        return SymSparseMatrixCSR(convert(SparseMatrixCSR{Bi}, x.uppertrian))
+    end
+end

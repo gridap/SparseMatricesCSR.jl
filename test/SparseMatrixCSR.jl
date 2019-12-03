@@ -15,7 +15,16 @@
             CSC = sparse(I, J, V, maxrows,maxcols)
             CSR = sparsecsr(SparseMatrixCSR{Bi},I, J, V,maxrows,maxcols)
 
+            display(CSR)
+
             @test CSC == CSR
+
+            @test convert(SparseMatrixCSR{Bi}, CSR) === CSR
+
+            CSRC = convert(SparseMatrixCSR{CSR.offset}, CSR)
+            @test CSRC == CSR
+            @test CSRC !== CSR
+
             @test nnz(CSC) == count(!iszero, CSC) == nnz(CSR) == count(!iszero, CSR)
 
             @test hasrowmajororder(CSR) == true

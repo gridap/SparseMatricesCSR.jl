@@ -18,6 +18,12 @@
             @test size(SYMCSC)==size(SYMCSR)
             @test SYMCSC == SYMCSR
 
+            @test convert(SymSparseMatrixCSR{Bi}, SYMCSR) === SYMCSR
+
+            SYMCSRC = convert(SymSparseMatrixCSR{SYMCSR.uppertrian.offset}, SYMCSR)
+            @test SYMCSRC == SYMCSR
+            @test SYMCSRC !== SYMCSR
+
             @test hasrowmajororder(SYMCSR) == true
             @test hascolmajororder(SYMCSR) == false
             @test getptr(SYMCSR)           == SYMCSR.uppertrian.rowptr
