@@ -24,6 +24,7 @@ This module contains:
     + `nzrange`: Return the range of indices for a particular row or column (Depending on the SparseMatrix type)
     + `findnz`: Return a tuple (I, J, V) where I and J are the row and column indices.
     + `rowvals`: Return row indices or raises an error (Depending on the SparseMatrix type)
+    + `convert`: Type conversion
 
 """
 module SparseMatricesCSR
@@ -31,7 +32,7 @@ module SparseMatricesCSR
 using SparseArrays
 using LinearAlgebra
 
-import Base: size, getindex, show, count, *
+import Base: convert, size, getindex, show, count, *
 import LinearAlgebra: mul!
 import SparseArrays: nnz, getnzval, nonzeros, nzrange, findnz, rowvals
 

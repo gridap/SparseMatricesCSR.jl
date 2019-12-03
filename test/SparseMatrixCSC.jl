@@ -13,7 +13,9 @@
         finalize_coo!(I,J,V,maxcols,maxrows)
         CSC = sparse(I, J, V, maxcols,maxrows)
 
-        @test hasrowmajororder(CSC) == false
+        @test convert(SparseMatrixCSC, CSC) === CSC
+
+        @test hasrowmajororder(CSC)  == false
         @test hascolmajororder(CSC) == true
         @test getptr(CSC)           == CSC.colptr
         @test getindices(CSC)       == rowvals(CSC)

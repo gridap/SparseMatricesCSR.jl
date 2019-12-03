@@ -285,3 +285,41 @@ getptr(S::SparseMatrixCSR) = S.rowptr
 Return column indices.
 """
 getindices(S::SparseMatrixCSR) = colvals(S)
+
+
+"""
+    function convert(::Type{SparseMatrixCSR}, x::AbstractSparseMatrix)
+
+Convert x to a value of type SymSparseMatrixCSR.
+"""
+convert(::Type{SparseMatrixCSR}, x::AbstractSparseMatrix)  = convert(SparseMatrixCSR{1}, x)
+
+function convert(::Type{SparseMatrixCSR{Bi}}, x::SparseMatrixCSR{Bj}) where {Bi,Bj}
+    if Bi == Bj
+        return x
+    else
+        return SparseMatrixCSR{Bi}( x.m, 
+                                    x.n, 
+                                    copy(getptr(x)).-x.offset, 
+                                    copy(getindices(x)).-x.offset, 
+                                    copy(nonzeros(x)))
+    end
+end
+
+function convert(::Type{SparseMatrixCSR{Bi}}, x::SparseMatrixCSC) where {Bi}
+    A = sparse(transpose(x))
+    (m, n) = size(A)
+    return SparseMatrixCSR{Bi}(m, n, getptr(A), getindices(A), nonzeros(A))
+end
+
+"""
+    function convert(::Type{SparseMatrixCSC}, x::SparseMatrixCSR)
+
+Convert x to a value of type SparseMatrixCSC.
+"""
+function convert(::Type{SparseMatrixCSC}, x::SparseMatrixCSR{Bi}) where {Bi}
+    A = sparse(transpose(x))
+    (m, n) = size(A)
+    return SparseMatrixCSR{Bi}(m, n, getptr(A), getindices(A), nonzeros(A))
+end
+
