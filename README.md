@@ -11,13 +11,24 @@ It includes `SparseMatrixCSR` and `SymSparseMatrixCSR` wrappers.
 
 ## Basic Usage
 
+CSR sparse matrix:
+
+```julia
+julia> push_coo!(SparseMatrixCSR,I,J,V,i1,j1,v1)
+julia> ...
+julia> push_coo!(SparseMatrixCSR,I,J,V,in,jn,vn)
+julia> finalize_coo!(SparseMatrixCSR,I,J,V,m,n)
+julia> CSR = sparsecsr(I,J,V,m,n)
+```
+
+Symmetric CSR sparse matrix:
+
 ```julia
 julia> push_coo!(SymSparseMatrixCSR,I,J,V,i1,j1,v1)
 julia> ...
 julia> push_coo!(SymSparseMatrixCSR,I,J,V,in,jn,vn)
-julia> finalize_coo!(SparseMatrixCSR,I,J,V,m,n)
-julia> CSR= sparsecsr(I,J,V,m,n)
-
+julia> finalize_coo!(SymSparseMatrixCSR,I,J,V,m,n)
+julia> CSR = symsparsecsr(I,J,V,m,n)
 ```
 
 ## Installation
