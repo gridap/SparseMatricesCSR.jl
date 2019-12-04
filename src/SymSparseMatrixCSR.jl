@@ -221,10 +221,19 @@ Convert x to a value of type SymSparseMatrixCSR.
 """
 convert(::Type{SymSparseMatrixCSR}, x::SymSparseMatrixCSR)  = convert(SymSparseMatrixCSR{1}, x)
 
-function convert(::Type{SymSparseMatrixCSR{Bi}}, x::SymSparseMatrixCSR{Bj}) where {Bi,Bj}
-    if Bi == Bj
+function convert(::Type{SymSparseMatrixCSR{Bi}}, x::SymSparseMatrixCSR{xBi}) where {Bi,xBi}
+    if Bi == xBi
         return x
     else
         return SymSparseMatrixCSR(convert(SparseMatrixCSR{Bi}, x.uppertrian))
     end
 end
+
+function convert(::Type{SymSparseMatrixCSR{Bi,Tv,Ti}}, x::SymSparseMatrixCSR{xBi,xTv,xTi}) where {Bi,Tv,Ti,xBi,xTv,xTi}
+    if (Bi,Tv,Ti) == (xBi,xTv,xTi)
+        return x
+    else
+        return SymSparseMatrixCSR(convert(SparseMatrixCSR{Bi,Tv,Ti}, x.uppertrian))
+    end
+end
+

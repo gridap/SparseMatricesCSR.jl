@@ -294,8 +294,8 @@ Convert x to a value of type SymSparseMatrixCSR.
 """
 convert(::Type{SparseMatrixCSR}, x::AbstractSparseMatrix)  = convert(SparseMatrixCSR{1}, x)
 
-function convert(::Type{SparseMatrixCSR{Bi}}, x::SparseMatrixCSR{Bj}) where {Bi,Bj}
-    if Bi == Bj
+function convert(::Type{SparseMatrixCSR{Bi}}, x::SparseMatrixCSR{xBi}) where {Bi,xBi}
+    if Bi == xBi
         return x
     else
         return SparseMatrixCSR{Bi}( x.m, 
@@ -306,10 +306,31 @@ function convert(::Type{SparseMatrixCSR{Bi}}, x::SparseMatrixCSR{Bj}) where {Bi,
     end
 end
 
+function convert(::Type{SparseMatrixCSR{Bi,Tv,Ti}}, x::SparseMatrixCSR{xBi,xTv,xTi}) where {Bi,Tv,Ti,xBi,xTv,xTi}
+    if (Bi,Tv,Ti) == (xBi,xTv,xTi)
+        return x
+    else
+        return SparseMatrixCSR{Bi}( x.m, 
+                                    x.n, 
+                                    convert(Vector{Ti}, copy(getptr(x)).-x.offset), 
+                                    convert(Vector{Ti}, copy(getindices(x)).-x.offset), 
+                                    convert(Vector{Tv}, copy(nonzeros(x))))
+    end
+end
+
 function convert(::Type{SparseMatrixCSR{Bi}}, x::SparseMatrixCSC) where {Bi}
     A = sparse(transpose(x))
     (m, n) = size(A)
     return SparseMatrixCSR{Bi}(m, n, getptr(A), getindices(A), nonzeros(A))
+end
+
+function convert(::Type{SparseMatrixCSR{Bi,Tv,Ti}}, x::SparseMatrixCSC) where {Bi,Tv,Ti}
+    A = sparse(transpose(x))
+    return SparseMatrixCSR{Bi}( A.m, 
+                                A.n, 
+                                convert(Vector{Ti}, getptr(A)), 
+                                convert(Vector{Ti}, getindices(A)), 
+                                convert(Vector{Tv}, nonzeros(A)))
 end
 
 """
@@ -317,9 +338,12 @@ end
 
 Convert x to a value of type SparseMatrixCSC.
 """
-function convert(::Type{SparseMatrixCSC}, x::SparseMatrixCSR{Bi}) where {Bi}
+function convert(::Type{SparseMatrixCSC{Tv,Ti}}, x::SparseMatrixCSR{xBi,xTv,xTi}) where {Tv,Ti,xBi,xTv,xTi}
     A = sparse(transpose(x))
-    (m, n) = size(A)
-    return SparseMatrixCSR{Bi}(m, n, getptr(A), getindices(A), nonzeros(A))
+    return SparseMatrixCSR{Bi}( A.m, 
+                                A.n, 
+                                convert(Vector{Ti}, getptr(A)), 
+                                convert(Vector{Ti}, getindices(A)), 
+                                convert(Vector{Tv}, nonzeros(A)))
 end
 
