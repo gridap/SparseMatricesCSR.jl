@@ -143,6 +143,12 @@ function push_coo!(::Type{SymSparseMatrixCSR},
     (push!(I, ik), push!(J, jk), push!(V, vk))
 end
 
+push_coo!(::Type{SymSparseMatrixCSR{Bi}}, I, J, V, ik, jk, vk) where {Bi} = 
+    push_coo!(SymSparseMatrixCSR, I, J, V, ik, jk, vk)
+
+push_coo!(::Type{SymSparseMatrixCSR{Bi,Tv,Ti}}, I, J, V, ik, jk, vk) where {Bi,Tv,Ti} = 
+    push_coo!(SymSparseMatrixCSR, I, J, V, ik, jk, vk)
+
 
 """
     function finalize_coo!(::Type{SymSparseMatrixCSR},I,J,V,m,n) 
@@ -167,6 +173,12 @@ function finalize_coo!(T::Type{SymSparseMatrixCSR},
         end
     end
 end
+
+finalize_coo!(T::Type{SymSparseMatrixCSR{Bi}}, I , J, V, m, n)  where {Bi} = 
+    finalize_coo!(SymSparseMatrix, Ij, V, m, n)
+
+finalize_coo!(T::Type{SymSparseMatrixCSR{Bi,Tv,Ti}}, I , J, V, m, n)  where {Bi,Tv,Ti} = 
+    finalize_coo!(SymSparseMatrix, Ij, V, m, n)
 
 
 """

@@ -223,6 +223,11 @@ function push_coo!(::Type{SparseMatrixCSR},
     (push!(I, ik), push!(J, jk), push!(V, vk))
 end
 
+push_coo!(::Type{SparseMatrixCSR{Bi}}, I, J, V, ik, jk, vk) where {Bi} = 
+    push_coo!(SparseMatrixCSR, I, J, V, ik, jk, vk)
+
+push_coo!(::Type{SparseMatrixCSR{Bi,Tv,Ti}}, I, J, V, ik, jk, vk) where {Bi,Tv,Ti} = 
+    push_coo!(SparseMatrixCSR, I, J, V, ik, jk, vk)
 
 """
     function finalize_coo!(::Type{SparseMatrixCSR},I,J,V,m,n) 
@@ -233,7 +238,11 @@ function finalize_coo!(::Type{SparseMatrixCSR},
     I::Vector,J::Vector,V::Vector,m::Integer,n::Integer) 
 end
 
+finalize_coo!(T::Type{SparseMatrixCSR{Bi}}, I , J, V, m, n)  where {Bi} = 
+    finalize_coo!(SparseMatrix, Ij, V, m, n)
 
+finalize_coo!(T::Type{SparseMatrixCSR{Bi,Tv,Ti}}, I , J, V, m, n)  where {Bi,Tv,Ti} = 
+    finalize_coo!(SparseMatrix, Ij, V, m, n)
 
 """
     function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector{T}) where {T}
