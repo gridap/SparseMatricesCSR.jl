@@ -30,8 +30,8 @@ struct SparseMatrixCSR{Bi,Tv,Ti} <: AbstractSparseMatrix{Tv,Ti}
 end
 
 
-SparseMatrixCSR(transpose::SparseMatrixCSC{Tv,Ti}) where {Tv,Ti} = 
-        SparseMatrixCSR{1,Tv,Ti}(transpose.n, transpose.m, transpose.colptr, transpose.rowval, transpose.nzval)
+SparseMatrixCSR(transpose::SparseMatrixCSC) where {Tv,Ti} = 
+        SparseMatrixCSR{1}(transpose.n, transpose.m, transpose.colptr, transpose.rowval, transpose.nzval)
 SparseMatrixCSR{Bi}(transpose::SparseMatrixCSC{Tv,Ti}) where {Bi,Tv,Ti} = 
         SparseMatrixCSR{Bi}(transpose.n, transpose.m, transpose.colptr, transpose.rowval, transpose.nzval)
 size(S::SparseMatrixCSR) = (S.m, S.n)
