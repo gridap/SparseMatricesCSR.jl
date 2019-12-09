@@ -207,6 +207,10 @@ sparsecsr(::Type{SparseMatrixCSR{Bi}},I,J,args...) where {Bi} =
         SparseMatrixCSR{Bi}(sparse(J,I,args...))
 sparsecsr(::Type{SparseMatrixCSR{Bi}},I,J,V,m,n,args...) where {Bi} = 
         SparseMatrixCSR{Bi}(sparse(J,I,V,n,m,args...))
+sparsecsr(::Type{SparseMatrixCSR{Bi,Tv,Ti}},I::Vector{Ti},J::Vector{Ti},args...) where {Bi,Tv,Ti} = 
+        SparseMatrixCSR{Bi}(sparse(J,I,args...))
+sparsecsr(::Type{SparseMatrixCSR{Bi,Tv,Ti}},I::Vector{Ti},J::Vector{Ti},V::Vector{Tv},m,n,args...) where {Bi,Tv,Ti} = 
+        SparseMatrixCSR{Bi}(sparse(J,I,V,n,m,args...))
 
 
 """

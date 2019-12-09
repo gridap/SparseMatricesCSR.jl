@@ -105,6 +105,13 @@ All elements of I must satisfy 1 <= I[k] <= m,
 and all elements of J must satisfy 1 <= J[k] <= n. 
 Numerical zeros in (I, J, V) are retained as structural nonzeros.
 """
+function symsparsecsr(T::Type{SymSparseMatrixCSR{Bi,Tv,Ti}},I::Vector{Ti},J::Vector{Ti},V::Vector{Tv},args...)  where {Bi,Tv,Ti}
+    m = length(args)>0 ? args[1] : isempty(I) ? 0 : Int(maximum(I))
+    n = length(args)>1 ? args[2] : m
+    c = length(args)>2 ? args[3] : +
+    symsparsecsr(SymSparseMatrixCSR{Bi},I,J,V,m,n,c)
+end
+
 function symsparsecsr(T::Type{SymSparseMatrixCSR{Bi}},I,J,V,args...)  where {Bi}
     m = length(args)>0 ? args[1] : isempty(I) ? 0 : Int(maximum(I))
     n = length(args)>1 ? args[2] : m
@@ -117,8 +124,11 @@ function symsparsecsr(::Type{SymSparseMatrixCSR{Bi}},I,J,V,m,n,combine) where {B
     SymSparseMatrixCSR(sparsecsr(SparseMatrixCSR{Bi},I,J,V,m,n,combine))
 end
 
-symsparsecsr(I,J,V,args...) =
+symsparsecsr(::Type{SymSparseMatrixCSR}, I,J,V,args...) =
     symsparsecsr(SymSparseMatrixCSR{1},I,J,V,args...)
+
+symsparsecsr(I,J,V,args...) =
+    symsparsecsr(SymSparseMatrixCSR,I,J,V,args...)
 
 
 """
