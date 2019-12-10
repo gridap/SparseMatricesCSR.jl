@@ -13,11 +13,11 @@
                 J = Vector{Ti}()
                 V = Vector{Tv}()
                 for (ik, jk, vk) in zip(rand(1:maxrows, maxnz), rand(1:maxcols, maxnz), rand(1:Tv(maxnz), maxnz))
-                    push_coo!(SparseMatrixCSR,I,J,V,ik,jk,vk)
+                    push_coo!(SparseMatrixCSR{Bi,Tv,Ti},I,J,V,ik,jk,vk)
                 end
-                finalize_coo!(SparseMatrixCSR,I,J,V,maxrows,maxcols)
+                finalize_coo!(SparseMatrixCSR{Bi,Tv,Ti},I,J,V,maxrows,maxcols)
                 CSC = sparse(I, J, V, maxrows,maxcols)
-                CSR = sparsecsr(SparseMatrixCSR{Bi},I, J, V,maxrows,maxcols)
+                CSR = sparsecsr(SparseMatrixCSR{Bi,Tv,Ti},I, J, V,maxrows,maxcols)
 
                 show(devnull, CSR);
 

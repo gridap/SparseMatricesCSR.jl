@@ -14,11 +14,11 @@
                 J = Vector{Ti}()
                 V = Vector{Tv}()
                 for (ik, jk, vk) in zip(rand(1:maxrows, maxnz), rand(1:maxcols, maxnz), rand(1:Tv(maxnz), maxnz) )
-                    push_coo!(SymSparseMatrixCSR,I,J,V,ik,jk,vk)
+                    push_coo!(SymSparseMatrixCSR{Bi,Tv,Ti},I,J,V,ik,jk,vk)
                 end
-                finalize_coo!(SymSparseMatrixCSR,I,J,V,maxrows, maxcols)
+                finalize_coo!(SymSparseMatrixCSR{Bi,Tv,Ti},I,J,V,maxrows, maxcols)
                 SYMCSC = Symmetric(sparse(I, J, V, maxrows, maxcols),:U)
-                SYMCSR = symsparsecsr(SymSparseMatrixCSR{Bi},I, J, V, maxrows, maxcols)
+                SYMCSR = symsparsecsr(SymSparseMatrixCSR{Bi,Tv,Ti},I, J, V, maxrows, maxcols)
 
                 @test size(SYMCSC)==size(SYMCSR)
                 @test SYMCSC == SYMCSR

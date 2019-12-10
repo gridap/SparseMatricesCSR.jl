@@ -175,10 +175,10 @@ function finalize_coo!(T::Type{SymSparseMatrixCSR},
 end
 
 finalize_coo!(T::Type{SymSparseMatrixCSR{Bi}}, I , J, V, m, n)  where {Bi} = 
-    finalize_coo!(SymSparseMatrixCSR, Ij, V, m, n)
+    finalize_coo!(SymSparseMatrixCSR, I, J, V, m, n)
 
 finalize_coo!(T::Type{SymSparseMatrixCSR{Bi,Tv,Ti}}, I , J, V, m, n)  where {Bi,Tv,Ti} = 
-    finalize_coo!(SymSparseMatrixCSR, Ij, V, m, n)
+    finalize_coo!(SymSparseMatrixCSR, I, J, V, m, n)
 
 
 """
