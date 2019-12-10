@@ -239,10 +239,10 @@ function finalize_coo!(::Type{SparseMatrixCSR},
 end
 
 finalize_coo!(T::Type{SparseMatrixCSR{Bi}}, I , J, V, m, n)  where {Bi} = 
-    finalize_coo!(SparseMatrix, Ij, V, m, n)
+    finalize_coo!(SparseMatrixCSR, Ij, V, m, n)
 
 finalize_coo!(T::Type{SparseMatrixCSR{Bi,Tv,Ti}}, I , J, V, m, n)  where {Bi,Tv,Ti} = 
-    finalize_coo!(SparseMatrix, Ij, V, m, n)
+    finalize_coo!(SparseMatrixCSR, Ij, V, m, n)
 
 """
     function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector{T}) where {T}
