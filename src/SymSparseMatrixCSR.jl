@@ -1,16 +1,179 @@
 
 """
-    struct SymSparseMatrixCSR{T,Ti<:Integer} <: AbstractSparseMatrix{T,Ti}
+    struct SymSparseMatrixCSR{Bi,T,Ti<:Integer} <: AbstractSparseMatrix{T,Ti}
+      uppertrian :: SparseMatrixCSR{Bi,T,Ti}
+    end
 
 Matrix type for storing symmetric sparse matrices in the
-Compressed Sparse Row format. The standard way
-of constructing SparseMatrixCSR is through the 
+Compressed Sparse Row format with `Bi`-based indexing (typically 0 or 1).
+Only the upper triangle is stored (including the non zero diagonal entries),
+which is represented by a `SparseMatrixCSR`.
+The standard way of constructing a `SymSparseMatrixCSR` is through the 
 [`symsparsecsr`](@ref) function.
 """
 struct SymSparseMatrixCSR{Bi,T,Ti<:Integer} <: AbstractSparseMatrix{T,Ti}
     uppertrian :: SparseMatrixCSR{Bi,T,Ti}
 end
 
+"""
+    symsparsecsr(args...;symmetrize::Bool=false)
+    symsparsecsr(::Val{Bi},args...;symmetrize::Bool=false) where Bi
+
+Create  a `SymSparseMatrixCSR` with `Bi`-based indexing (1 by default)
+from the same `args...` as one constructs a `SparseMatrixCSC`
+with the [`sparse`](@ref) function. If `symmetrize == false` (the default)
+the given arguments should only describe the upper triangle
+of the matrix (including non zero diagonal values). If `symmetrize == true`
+a non symmetric input is accepted and it will be symmetrized in-place
+(i.e., changing the input arguments).
+"""
+function symsparsecsr(::Val{Bi},I,J,V,args...;symmetrize::Bool=false) where Bi
+  if symmetrize
+    Tv = eltype(V)
+    α = Tv(0.5)
+    for k in 1:length(I)
+      r = I[k]
+      c = J[k]
+      if r > c
+        I[k] = c
+        J[k] = r
+      end
+      if r != c
+        V[k] = α*V[k]
+      end
+    end
+  end
+  SymSparseMatrixCSR(sparsecsr(Val(Bi),I,J,V,args...))
+end
+symsparsecsr(args...;kwargs...) = symsparsecsr(Val(1),args...;kwargs...)
+
+size(A::SymSparseMatrixCSR) = size(A.uppertrian)
+IndexStyle(::Type{<:SymSparseMatrixCSR}) = IndexCartesian()
+function getindex(A::SymSparseMatrixCSR, x::Integer, y::Integer)
+  getindex(A.uppertrian,min(x,y),max(x,y))
+end
+
+getrowptr(S::SymSparseMatrixCSR) = getrowptr(S.uppertrian)
+getnzval(S::SymSparseMatrixCSR) = getnzval(S.uppertrian)
+getcolval(S::SymSparseMatrixCSR) = getcolval(S.uppertrian)
+
+"""
+    getBi(S::SymSparseMatrixCSR{Bi}) where {Bi}
+
+Return `Bi`.
+"""
+getBi(S::SymSparseMatrixCSR{Bi}) where {Bi} = Bi
+
+"""
+    getoffset(S::SymSparseMatrixCSR{Bi}) where {Bi}
+
+Return `1-Bi`. Useful to convert from 1-based to `Bi`-based indexing
+(by subtracting the offset).
+"""
+getoffset(S::SymSparseMatrixCSR{Bi}) where Bi = getoffset(Bi)
+
+"""
+    issparse(S::SymSparseMatrixCSR)
+
+Returns `true`.
+"""
+issparse(S::SymSparseMatrixCSR) = true
+
+"""
+    nnz(S::SymSparseMatrixCSR)
+
+Returns the number of stored elements in a sparse array,
+which correspond to the nonzero entries in the upper triangle and diagonal.
+"""
+nnz(S::SymSparseMatrixCSR) = nnz(S.uppertrian)
+
+"""
+    nonzeros(S::SymSparseMatrixCSR)
+
+Return a vector (1-based) of the structural nonzero values in sparse array S. 
+This includes zeros that are explicitly stored in the sparse array,
+which correspond to the nonzero entries in the upper triangle and diagonal.
+The returned vector points directly to the internal nonzero storage of S, 
+and any modifications to the returned vector will mutate S as well.
+"""
+nonzeros(S::SymSparseMatrixCSR) = nonzeros(S.uppertrian)
+
+"""
+    colvals(S::SparseMatrixCSR)
+
+Return a vector of the col indices of `S`. The stored values are indexes to arrays
+with `Bi`-based indexing, but the `colvals(S)` array itself is a standard 1-based
+Julia `Vector`.
+Any modifications to the returned vector will mutate S as well. 
+Providing access to how the col indices are stored internally 
+can be useful in conjunction with iterating over structural 
+nonzero values. See also [`nonzeros`](@ref) and [`nzrange`](@ref).
+"""
+colvals(S::SymSparseMatrixCSR) = colvals(S.uppertrian)
+
+"""
+    nzrange(S::SymSparseMatrixCSR, row::Integer)
+
+Return the range of indices to the structural nonzero values of a 
+sparse matrix row section being in the diagonal or upper triangle.
+The returned range of indices is always 1-based even for `Bi != 1`.
+"""
+nzrange(S::SymSparseMatrixCSR, row::Integer) = nzrange(S.uppertrian, row)
+
+"""
+    findnz(S::SymSparseMatrixCSR)
+
+Return a tuple `(I, J, V)` where `I` and `J` are the row and column 1-based indices 
+of the stored ("structurally non-zero in diagonal + upper trianle") values in sparse matrix A, 
+and V is a vector of the values. The returned vectors are newly allocated
+and are unrelated to the internal storage of matrix `S`.
+"""
+findnz(S::SymSparseMatrixCSR) = findnz(S.uppertrian)
+
+"""
+    count(pred, S::SymSparseMatrixCSR)
+    count(S::SymSparseMatrixCSR)
+
+Count the number of elements in `nonzeros(S)` for which predicate `pred` returns `true`. 
+If  `pred` not given, it counts the number of `true` values.
+"""
+count(pred, S::SymSparseMatrixCSR) = count(pred, S.uppertrian)
+count(S::SymSparseMatrixCSR) = count(i->true, S)
+
+function mul!(y::AbstractVector,A::SymSparseMatrixCSR,v::AbstractVector, α::Number, β::Number)
+  A.uppertrian.n == size(v, 1) || throw(DimensionMismatch())
+  A.uppertrian.m == size(y, 1) || throw(DimensionMismatch())
+  if β != 1
+    β != 0 ? rmul!(y, β) : fill!(y, zero(eltype(y)))
+  end
+  o = getoffset(A)
+  for row = 1:size(y, 1)
+    @inbounds for nz in nzrange(A,row)
+      col = A.uppertrian.colval[nz]+o
+      y[row] += A.uppertrian.nzval[nz]*v[col]*α
+      row != col && (y[col] += A.uppertrian.nzval[nz]*v[row]*α)
+    end
+  end
+  return y
+end
+
+function mul!(y::AbstractVector,A::SymSparseMatrixCSR,v::AbstractVector)
+  A.uppertrian.n == size(v, 1) || throw(DimensionMismatch())
+  A.uppertrian.m == size(y, 1) || throw(DimensionMismatch())
+
+  fill!(y,zero(eltype(y)))
+  o = getoffset(A)
+  for row = 1:size(y, 1)
+    @inbounds for nz in nzrange(A,row)
+      col = A.uppertrian.colval[nz]+o
+      y[row] += A.uppertrian.nzval[nz]*v[col]
+      row != col && (y[col] += A.uppertrian.nzval[nz]*v[row])
+    end
+  end
+  return y
+end
+
+*(A::SymSparseMatrixCSR, v::Vector) = (y = similar(v,size(A,1));mul!(y,A,v))
 
 function show(io::IO, ::MIME"text/plain", S::SymSparseMatrixCSR)
     xnnz = nnz(S)
@@ -23,239 +186,4 @@ function show(io::IO, ::MIME"text/plain", S::SymSparseMatrixCSR)
     end
 end
 show(io::IO, S::SymSparseMatrixCSR) = show(io, S.uppertrian)
-
-size(A::SymSparseMatrixCSR) = size(A.uppertrian)
-getindex(A::SymSparseMatrixCSR, x::Integer, y::Integer) = getindex(A.uppertrian,min(x,y),max(x,y))
-
-"""
-    nnz(S::SymSparseMatrixCSR)
-
-Returns the number of stored (filled) elements in a sparse array.
-"""
-nnz(S::SymSparseMatrixCSR) = nnz(S.uppertrian)
-
-"""
-    count(pred, S::SymSparseMatrixCSR) -> Integer
-
-Count the number of elements in nonzeros(S) for which predicate pred returns true. 
-"""
-count(pred, S::SymSparseMatrixCSR) = count(pred, S.uppertrian)
-
-"""
-    nonzeros(S::SymSparseMatrixCSR)
-
-Return a vector of the structural nonzero values in sparse array S. 
-This includes zeros that are explicitly stored in the sparse array. 
-The returned vector points directly to the internal nonzero storage of A, 
-and any modifications to the returned vector will mutate A as well.
-"""
-nonzeros(S::SymSparseMatrixCSR) = nonzeros(S.uppertrian)
-
-"""
-    nzrange(S::SymSparseMatrixCSR, row::Integer)
-
-Return the range of indices to the structural nonzero values of a 
-sparse matrix row. 
-"""
-nzrange(S::SymSparseMatrixCSR, row::Integer) = nzrange(S.uppertrian, row)
-
-"""
-    findnz(S::SymSparseMatrixCSR)
-
-Return a tuple (I, J, V) where I and J are the row and column indices 
-of the stored ("structurally non-zero") values in sparse matrix A, 
-and V is a vector of the values.
-"""
-findnz(S::SymSparseMatrixCSR) = findnz(S.uppertrian)
-
-"""
-    rowvals(S::SymSparseMatrixCSR)
-
-Return an error. 
-CSR sparse matrices does not contain raw row values.
-It contains row pointers instead that can be accessed
-by using [`nzrange`](@ref).
-"""
-
-rowvals(S::SymSparseMatrixCSR) = rowvals(S.uppertrian)
-
-"""
-    colvals(S::SparseMatrixCSR)
-
-Return a vector of the col indices of S. 
-Any modifications to the returned vector will mutate S as well. 
-Providing access to how the co,l indices are stored internally 
-can be useful in conjunction with iterating over structural 
-nonzero values. See also [`nonzeros`](@ref) and [`nzrange`](@ref).
-"""
-
-colvals(S::SymSparseMatrixCSR) = colvals(S.uppertrian)
-
-
-"""
-    symsparsecsr(I, J, V, [m, n, combine])
-
-Create a Symmetric sparse matrix S of dimensions m x n
- such that S[I[k], J[k]] = V[k], and m=n. 
-The combine function is used to combine duplicates. 
-If m and n are not specified, they are set to 
-maximum(I) and maximum(J) respectively. 
-If the combine function is not supplied, combine defaults to +.
-All elements of I must satisfy 1 <= I[k] <= m, 
-and all elements of J must satisfy 1 <= J[k] <= n. 
-Numerical zeros in (I, J, V) are retained as structural nonzeros.
-"""
-function symsparsecsr(T::Type{SymSparseMatrixCSR{Bi,Tv,Ti}},I::Vector{Ti},J::Vector{Ti},V::Vector{Tv},args...)  where {Bi,Tv,Ti}
-    m = length(args)>0 ? args[1] : isempty(I) ? 0 : Int(maximum(I))
-    n = length(args)>1 ? args[2] : m
-    c = length(args)>2 ? args[3] : +
-    symsparsecsr(SymSparseMatrixCSR{Bi},I,J,V,m,n,c)
-end
-
-function symsparsecsr(T::Type{SymSparseMatrixCSR{Bi}},I,J,V,args...)  where {Bi}
-    m = length(args)>0 ? args[1] : isempty(I) ? 0 : Int(maximum(I))
-    n = length(args)>1 ? args[2] : m
-    c = length(args)>2 ? args[3] : +
-    symsparsecsr(T,I,J,V,m,n,c)
-end
-
-function symsparsecsr(::Type{SymSparseMatrixCSR{Bi}},I,J,V,m,n,combine) where {Bi}
-    m == n || throw(DimensionMismatch("matrix is not square: dimensions are ($m, $n)"))
-    SymSparseMatrixCSR(sparsecsr(SparseMatrixCSR{Bi},I,J,V,m,n,combine))
-end
-
-symsparsecsr(::Type{SymSparseMatrixCSR}, I,J,V,args...) =
-    symsparsecsr(SymSparseMatrixCSR{1},I,J,V,args...)
-
-symsparsecsr(I,J,V,args...) =
-    symsparsecsr(SymSparseMatrixCSR,I,J,V,args...)
-
-
-"""
-    function push_coo!(::Type{SymSparseMatrixCSR},I,J,V,ik,jk,vk) 
-
-Inserts entries in COO vectors for further building a SymSparseMatrixCSR.
-It stores only the upper triangle, ignoring entries with (ik>jk) coordinates.
-"""
-function push_coo!(::Type{SymSparseMatrixCSR},
-        I::Vector,J::Vector,V::Vector,ik::Integer,jk::Integer,vk::Number)
-    (ik>jk) && return
-    (push!(I, ik), push!(J, jk), push!(V, vk))
-end
-
-push_coo!(::Type{SymSparseMatrixCSR{Bi}}, I, J, V, ik, jk, vk) where {Bi} = 
-    push_coo!(SymSparseMatrixCSR, I, J, V, ik, jk, vk)
-
-push_coo!(::Type{SymSparseMatrixCSR{Bi,Tv,Ti}}, I, J, V, ik, jk, vk) where {Bi,Tv,Ti} = 
-    push_coo!(SymSparseMatrixCSR, I, J, V, ik, jk, vk)
-
-
-"""
-    function finalize_coo!(::Type{SymSparseMatrixCSR},I,J,V,m,n) 
-
-Finalize COO arrays for building a SymSparseMatrixCSR.
-Check and insert diagonal entries in COO vectors if needed.
-"""
-function finalize_coo!(T::Type{SymSparseMatrixCSR},
-        I::Vector,J::Vector,V::Vector, m::Integer, n::Integer) 
-    m == n || throw(DimensionMismatch("matrix is not square: dimensions are ($m, $n)"))
-    touched = zeros(Bool,m)
-    for k in 1:length(I)
-        Ik = I[k]
-        Jk = J[k]
-        if Ik == Jk
-            touched[Ik] = true
-        end
-    end
-    for k in 1:m
-        if ! touched[k]
-            push_coo!(T,I,J,V,k,k,zero(eltype(V)))
-        end
-    end
-end
-
-finalize_coo!(T::Type{SymSparseMatrixCSR{Bi}}, I , J, V, m, n)  where {Bi} = 
-    finalize_coo!(SymSparseMatrixCSR, I, J, V, m, n)
-
-finalize_coo!(T::Type{SymSparseMatrixCSR{Bi,Tv,Ti}}, I , J, V, m, n)  where {Bi,Tv,Ti} = 
-    finalize_coo!(SymSparseMatrixCSR, I, J, V, m, n)
-
-
-"""
-    function mul!(y::AbstractVector,A::SymSparseMatrixCSR,v::AbstractVector{T}) where {T}
-
-Calculates the matrix-vector product ``Av`` and stores the result in `y`,
-overwriting the existing value of `y`. 
-"""
-function mul!(y::AbstractVector,A::SymSparseMatrixCSR,v::AbstractVector{T}) where {T}
-    A.uppertrian.n == size(v, 1) || throw(DimensionMismatch())
-    A.uppertrian.m == size(y, 1) || throw(DimensionMismatch())
-
-    y .= zero(T)
-    for row = 1:size(y, 1)
-        @inbounds for nz in nzrange(A,row)
-            col = A.uppertrian.colval[nz]-A.uppertrian.offset
-            y[row] += A.uppertrian.nzval[nz]*v[col]
-            row != col && (y[col] += A.uppertrian.nzval[nz]*v[row])
-        end
-    end
-    return y
-end
-
-*(A::SymSparseMatrixCSR, v::Vector) = (y = similar(v,A.uppertrian.n);mul!(y,A,v))
-
-"""
-    function hasrowmajororder(::Type{SymSparseMatrixCSR})
-
-Check if values are stored in row-major order.
-Return true.
-"""
-hasrowmajororder(::Type{SymSparseMatrixCSR}) = true
-hasrowmajororder(a::SymSparseMatrixCSR) = hasrowmajororder(SymSparseMatrixCSR)
-
-"""
-    function hascolmajororder(::Type{SymSparseMatrixCSR})
-
-Check if values are stored in col-major order.
-Return false.
-"""
-hascolmajororder(::Type{SymSparseMatrixCSR}) = false
-hascolmajororder(a::SymSparseMatrixCSR) = hascolmajororder(SymSparseMatrixCSR)
-
-"""
-    function getptr(S::SymSparseMatrixCSR)
-
-Return rows pointer.
-"""
-getptr(S::SymSparseMatrixCSR) = getptr(S.uppertrian)
-
-"""
-    function getindices(S::SymSparseMatrixCSR)
-
-Return column indices.
-"""
-getindices(S::SymSparseMatrixCSR) = colvals(S)
-
-"""
-    function convert(::Type{SymSparseMatrixCSR}, x::SymSparseMatrixCSR)
-
-Convert x to a value of type SymSparseMatrixCSR.
-"""
-convert(::Type{SymSparseMatrixCSR}, x::SymSparseMatrixCSR)  = convert(SymSparseMatrixCSR{1}, x)
-
-function convert(::Type{SymSparseMatrixCSR{Bi}}, x::SymSparseMatrixCSR{xBi}) where {Bi,xBi}
-    if Bi == xBi
-        return x
-    else
-        return SymSparseMatrixCSR(convert(SparseMatrixCSR{Bi}, x.uppertrian))
-    end
-end
-
-function convert(::Type{SymSparseMatrixCSR{Bi,Tv,Ti}}, x::SymSparseMatrixCSR{xBi,xTv,xTi}) where {Bi,Tv,Ti,xBi,xTv,xTi}
-    if (Bi,Tv,Ti) == (xBi,xTv,xTi)
-        return x
-    else
-        return SymSparseMatrixCSR(convert(SparseMatrixCSR{Bi,Tv,Ti}, x.uppertrian))
-    end
-end
 

@@ -1,70 +1,87 @@
-@testset "SymSparseMatrixCSR" begin
-    maxnz=5
-    maxrows=5
-    maxcols=5
-    int_types=(Int32,Int64)
-    float_types=(Float32,Float64)
-    Bi_types=(0,1)
+module SparseMatrixCSRTests
 
+using Test
+using SparseMatricesCSR
+using SparseArrays
+using LinearAlgebra
 
-    for Ti in int_types
-        for Tv in float_types
-            for Bi in Bi_types
-                I = Vector{Ti}()
-                J = Vector{Ti}()
-                V = Vector{Tv}()
-                for (ik, jk, vk) in zip(rand(1:maxrows, maxnz), rand(1:maxcols, maxnz), rand(1:Tv(maxnz), maxnz) )
-                    push_coo!(SymSparseMatrixCSR{Bi,Tv,Ti},I,J,V,ik,jk,vk)
-                end
-                finalize_coo!(SymSparseMatrixCSR{Bi,Tv,Ti},I,J,V,maxrows, maxcols)
-                SYMCSC = Symmetric(sparse(I, J, V, maxrows, maxcols),:U)
-                SYMCSR = symsparsecsr(SymSparseMatrixCSR{Bi,Tv,Ti},I, J, V, maxrows, maxcols)
+function test_csr(Bi,Tv,Ti)
+  maxrows=5
+  maxcols=6
 
-                @test size(SYMCSC)==size(SYMCSR)
-                @test SYMCSC == SYMCSR
+  I = Ti[1,2,1,3,2,5,2,5]
+  J = Ti[1,1,2,2,3,2,5,5]
+  V = Tv[2,3,3,4,4,7,7,8]
 
-                @test convert(SymSparseMatrixCSR{Bi}, SYMCSR) === SYMCSR
+  I_up = Ti[1,1,2,2,5]
+  J_up = Ti[1,2,3,5,5]
+  V_up = Tv[2,3,4,7,8]
 
-                @test hasrowmajororder(SYMCSR) == true
-                @test hascolmajororder(SYMCSR) == false
-                @test getptr(SYMCSR)           == SYMCSR.uppertrian.rowptr
-                @test getindices(SYMCSR)       == colvals(SYMCSR)
+  CSC = sparse(I,J,V)
+  if Bi == 1
+    CSR = symsparsecsr(I_up,J_up,V_up)
+    @test CSR == CSC
+    CSR = symsparsecsr(copy(I),copy(J),copy(V);symmetrize=true)
+    @test CSR == CSC
+  end
 
-                @test nnz(SYMCSC.data) == nnz(SYMCSR.uppertrian) <= nnz(SYMCSR) 
-                @test count(!iszero, SYMCSC.data) == count(!iszero, SYMCSR.uppertrian)
+  CSR = symsparsecsr(Val(Bi),I_up,J_up,V_up)
+  @test CSR == CSC
+  CSR = symsparsecsr(Val(Bi),copy(I),copy(J),copy(V);symmetrize=true)
+  @test CSR == CSC
+  @test eltype(CSR) == Tv
+  @test isa(CSR,SymSparseMatrixCSR{Bi,Tv,Ti})
 
-                ICSC,JCSC,VCSC= findnz(SYMCSC.data)
-                ICSR,JCSR,VCSR= findnz(SYMCSR)
+  CSC = sparse(I,J,V,maxrows,maxcols)
+  if Bi == 1
+    CSR = symsparsecsr(I_up,J_up,V_up,maxrows,maxcols)
+    @test CSR == CSC
+    CSR = symsparsecsr(copy(I),copy(J),copy(V),maxrows,maxcols;symmetrize=true)
+    @test CSR == CSC
+  end
 
-                @test sort(ICSC)==sort(JCSR) && sort(JCSC)==sort(ICSR) && sort(VCSC)==sort(VCSR)
+  CSR = symsparsecsr(Val(Bi),I_up,J_up,V_up,maxrows,maxcols)
+  @test CSR == CSC
+  CSR = symsparsecsr(Val(Bi),copy(I),copy(J),copy(V),maxrows,maxcols;symmetrize=true)
+  @test CSR == CSC
 
-                v = rand(size(SYMCSC)[2])
-                @test SYMCSC*v == SYMCSR*v
+  @test size(CSR) == size(CSC)
+  @test eltype(CSR) == Tv
+  @test isa(CSR,SymSparseMatrixCSR{Bi,Tv,Ti})
+  @test issparse(CSR)
+  @test getBi(CSR) == Bi
+  @test getoffset(CSR) == 1-Bi
+  @test nnz(CSR) == nnz(CSR.uppertrian)
+  @test length(nonzeros(CSR)) == nnz(CSR)
+  @test nonzeros(CSR) === CSR.uppertrian.nzval
+  @test colvals(CSR) === CSR.uppertrian.colval
+  i,j,v = findnz(CSR)
+  csr = symsparsecsr(Val(Bi),i,j,v,maxrows,maxcols)
+  @test csr == CSR
+  @test count(v->v>0,CSR) == count(v->v>0,nonzeros(CSR))
 
-                for cBi in Bi_types
-                    if Bi == cBi
-                        @test convert(SymSparseMatrixCSR{Bi}, SYMCSR) === SYMCSR
-                    else
-                        SYMCSRC = convert(SymSparseMatrixCSR{cBi}, SYMCSR)
-                        @test SYMCSRC == SYMCSR
-                        @test SYMCSRC !== SYMCSR
-                    end
-                end
+  x = rand(Tv,maxcols)
+  y = Vector{Tv}(undef,maxrows)
+  z = Vector{Tv}(undef,maxrows)
+  mul!(y,CSR,x)
+  mul!(z,CSC,x)
+  @test y ≈ z
 
-                for cTi in int_types
-                    for cTv in float_types
-                        if (Ti,Tv) == (cTi,cTv)
-                            @test convert(SymSparseMatrixCSR{Bi,Tv,Ti}, SYMCSR) === SYMCSR
-                        else
-                            SYMCSRC = convert(SymSparseMatrixCSR{Bi,cTv,cTi}, SYMCSR)
-                            @test SYMCSRC == SYMCSR
-                            @test SYMCSRC !== SYMCSR
-                        end
-                    end
-                end
-            end
-        end
-    end
-    
+  mul!(y,CSR,x,1,2)
+  mul!(z,CSC,x,1,2)
+  @test y ≈ z
+
+  @test CSR*x ≈ CSC*x
+
 end
+
+for Bi in (0,1)
+  for Tv in (Float32,Float64)
+    for Ti in (Int32,Int64)
+      test_csr(Bi,Tv,Ti)
+    end
+  end
+end
+
+end # module
 

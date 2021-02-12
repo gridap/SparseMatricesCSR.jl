@@ -79,8 +79,13 @@ Create  a `SparseMatrixCSR` with `Bi`-based indexing (1 by default)
 from the same `args...` as one constructs a `SparseMatrixCSC`
 with the [`sparse`](@ref) function.
 """
-sparsecsr(I,J,args...) = SparseMatrixCSR(transpose(sparse(J,I,args...)))
-sparsecsr(::Val{Bi},I,J,args...) where Bi = SparseMatrixCSR{Bi}(transpose(sparse(J,I,args...)))
+sparsecsr(I,J,V) = SparseMatrixCSR(transpose(sparse(J,I,V,dimlub(J),dimlub(I))))
+sparsecsr(I,J,V,m,n) = SparseMatrixCSR(transpose(sparse(J,I,V,n,m)))
+sparsecsr(I,J,V,m,n,combine) = SparseMatrixCSR(transpose(sparse(J,I,V,n,m,combine)))
+sparsecsr(::Val{Bi},I,J,V) where Bi = SparseMatrixCSR{Bi}(transpose(sparse(J,I,V,dimlub(J),dimlub(I))))
+sparsecsr(::Val{Bi},I,J,V,m,n) where Bi = SparseMatrixCSR{Bi}(transpose(sparse(J,I,V,n,m)))
+sparsecsr(::Val{Bi},I,J,V,m,n,combine) where Bi = SparseMatrixCSR{Bi}(transpose(sparse(J,I,V,n,m,combine)))
+dimlub(I) = isempty(I) ? 0 : Int(maximum(I))
 
 size(S::SparseMatrixCSR) = (S.m, S.n)
 IndexStyle(::Type{<:SparseMatrixCSR}) = IndexCartesian()
@@ -108,7 +113,6 @@ getBi(S::SparseMatrixCSR{Bi}) where {Bi} = Bi
 
 """
     getoffset(S::SparseMatrixCSR{Bi}) where {Bi}
-    getoffset(Bi::Integer)
 
 Return `1-Bi`. Useful to convert from 1-based to `Bi`-based indexing
 (by subtracting the offset).
@@ -139,17 +143,6 @@ The returned vector points directly to the internal nonzero storage of S,
 and any modifications to the returned vector will mutate S as well.
 """
 nonzeros(S::SparseMatrixCSR) = S.nzval
-
-"""
-    rowvals(S::SparseMatrixCSR)
-
-Return an error. 
-CSR sparse matrices does not contain raw row values.
-It contains col values instead that can be accessed
-by using [`colvals`](@ref).
-"""
-rowvals(S::SparseMatrixCSR) =
-  throw(ArgumentError("CSR sparse matrix does not contain raw row values"))
 
 """
     colvals(S::SparseMatrixCSR{Bi}) where {Bi}
@@ -214,9 +207,10 @@ function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector, α::Number
   if β != 1
     β != 0 ? rmul!(y, β) : fill!(y, zero(eltype(y)))
   end
+  o = getoffset(A)
   for row = 1:size(y, 1)
     @inbounds for nz in nzrange(A,row)
-      col = A.colval[nz]+getoffset(A)
+      col = A.colval[nz]+o
       y[row] += A.nzval[nz]*v[col]*α
     end
   end
@@ -227,9 +221,10 @@ function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector)
   A.n == size(v, 1) || throw(DimensionMismatch())
   A.m == size(y, 1) || throw(DimensionMismatch())
   fill!(y, zero(eltype(y)))
+  o = getoffset(A)
   for row = 1:size(y, 1)
     @inbounds for nz in nzrange(A,row)
-      col = A.colval[nz]+getoffset(A)
+      col = A.colval[nz]+o
       y[row] += A.nzval[nz]*v[col]
     end
   end
