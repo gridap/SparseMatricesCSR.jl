@@ -8,7 +8,7 @@ makedocs(;
     ],
     repo="https://github.com/gridap/SparseMatricesCSR.jl/blob/{commit}{path}#L{line}",
     sitename="SparseMatricesCSR.jl",
-    authors="Víctor Sande <vsande@cimne.upc.edu>",
+    authors=["Víctor Sande <vsande@cimne.upc.edu>","Francesc Verdugo <fverdugo@cimne.upc.edu>"],
     assets=String[],
 )
 

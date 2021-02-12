@@ -1,129 +1,139 @@
 
 """
-    struct SparseMatrixCSR{Bi,Tv,Ti<:Integer} <: AbstractSparseMatrix{Tv,Ti}
+    SparseMatrixCSR{Bi,Tv,Ti<:Integer} <: AbstractSparseMatrix{Tv,Ti}
 
-Matrix type for storing Bi-based sparse matrices 
-in the Compressed Sparse Row format. The standard 
-way of constructing SparseMatrixCSR is through the 
+Matrix type for storing sparse matrices 
+in the Compressed Sparse Row format with `Bi`-based indexing (typically 0 or 1).
+The standard way of constructing `SparseMatrixCSR` is through the 
 [`sparsecsr`](@ref) function.
+
+#Properties
+
+- `m::Int` Number of columns
+- `n::Int` Number of rows
+- `rowptr::Vector{Ti}` Row `i` (1-based) in `nzval` vector at indices (1-based) `(rowptr[i]+(1-Bi)):(rowptr[i+1]+(1-Bi)-1)`
+- `colval::Vector{Ti}` Col indices (`Bi`-based) of stored values
+- `nzval::Vector{Tv}`  Stored values, typically non zeros
+
+#Inner constructor
+
+    SparseMatrixCSR{Bi}(
+      m::Integer,
+      n::Integer,
+      rowptr::Vector{Ti},
+      colval::Vector{Ti},
+      nzval::Vector{Tv}) where {Bi,Tv,Ti<:Integer}
+
 """
 struct SparseMatrixCSR{Bi,Tv,Ti} <: AbstractSparseMatrix{Tv,Ti}
-    offset :: Int             # Bi-index offset (Bi-1)
-    m      :: Int             # Number of columns
-    n      :: Int             # Number of rows
-    rowptr :: Vector{Ti}      # Row i is in (rowptr[i]+offset):(rowptr[i+1]-Bi)
-    colval :: Vector{Ti}      # Col indices (with base Bi) of stored values
-    nzval  :: Vector{Tv}      # Stored values, typically nonzeros
-
-    function SparseMatrixCSR{Bi}(m::Integer, n::Integer, rowptr::Vector{Ti}, colval::Vector{Ti},
-                                    nzval::Vector{Tv}) where {Bi,Tv,Ti<:Integer}
-        @noinline throwsz(str, lbl, k) =
-            throw(ArgumentError("number of $str ($lbl) must be ≥ 0, got $k"))
-        m < 0 && throwsz("rows", 'm', m)
-        n < 0 && throwsz("columns", 'n', n)
-        rowptr[m+1] == length(nzval) && throwsz("nnz", "rowptr[m+1]", length(nzval))
-        offset = Bi-1
-        rowptr .+= offset
-        colval .+= offset
-        new{Bi,Tv,Ti}(Int(offset), Int(m), Int(n), rowptr, colval, nzval)
-    end
-end
-
-
-SparseMatrixCSR(transpose::SparseMatrixCSC) where {Tv,Ti} = 
-        SparseMatrixCSR{1}(transpose.n, transpose.m, transpose.colptr, transpose.rowval, transpose.nzval)
-SparseMatrixCSR{Bi}(transpose::SparseMatrixCSC{Tv,Ti}) where {Bi,Tv,Ti} = 
-        SparseMatrixCSR{Bi}(transpose.n, transpose.m, transpose.colptr, transpose.rowval, transpose.nzval)
-size(S::SparseMatrixCSR) = (S.m, S.n)
-
-function show(io::IO, ::MIME"text/plain", S::SparseMatrixCSR)
-    xnnz = nnz(S)
-    print(io, S.m, "×", S.n, " ", typeof(S), " with ", xnnz, " stored ",
-              xnnz == 1 ? "entry" : "entries")
-    if xnnz != 0
-        print(io, ":")
-        show(IOContext(io, :typeinfo => eltype(S)), S)
-    end
-end
-show(io::IO, S::SparseMatrixCSR) = show(convert(IOContext, io), S::SparseMatrixCSR)
-#show(io::IOContext, S::SparseMatrixCSR) = dump(S)
-
-function show(io::IOContext, S::SparseMatrixCSR{Bi}) where{Bi}
-    nnz(S) == 0 && return show(io, MIME("text/plain"), S)
-
-    ioc = IOContext(io, :compact => true)
-    function _format_line(r, col, padr, padc)
-        print(ioc, "\n  [", rpad(col, padr), ", ", lpad(S.colval[r], padc), "]  =  ")
-        if isassigned(S.nzval, Int(r))
-            show(ioc, S.nzval[r])
-        else
-            print(ioc, Base.undef_ref_str)
-        end
-    end
-
-    function _get_cols(from, to)
-        idx = eltype(S.rowptr)[]
-        c = searchsortedlast(S.rowptr, from)
-        for i = from:to
-            while i == S.rowptr[c+1]
-                c +=1
-            end
-            push!(idx, c)
-        end
-        idx
-    end
-
-    rows = displaysize(io)[1] - 4 # -4 from [Prompt, header, newline after elements, new prompt]
-    if !get(io, :limit, false) || rows >= nnz(S) # Will the whole matrix fit when printed?
-        cols = _get_cols(Bi, nnz(S)+S.offset)
-        padr, padc = ndigits.((maximum(S.colval[1:nnz(S)]), cols[end]))
-        _format_line.(1:nnz(S), cols.+S.offset, padr, padc)
-    else
-        if rows <= 2
-            print(io, "\n  \u22ee")
-            return
-        end
-        s1, e1 = 1, div(rows - 1, 2) # -1 accounts for \vdots
-        s2, e2 = nnz(S) - (rows - 1 - e1) + 1, nnz(S)
-        cols1, cols2 = _get_cols(s1+S.offset, e1+S.offset), _get_cols(s2+S.offset, e2+S.offset)
-        padr = ndigits(max(maximum(S.colval[s1:e1]), maximum(S.colval[s2:e2])))
-        padc = ndigits(cols2[end])
-        _format_line.(s1:e1, cols1, padr, padc)
-        print(io, "\n  \u22ee")
-        _format_line.(s2:e2, cols2, padr, padc)
-    end
-    return
-end
-
-
-function getindex(S::SparseMatrixCSR{Bi,Tv,Ti}, i0::Integer, i1::Integer) where {Bi,Tv,Ti}
-    if !(1 <= i0 <= S.m && 1 <= i1 <= S.n); throw(BoundsError()); end
-    r1 = Int(S.rowptr[i0]-S.offset)
-    r2 = Int(S.rowptr[i0+1]-Bi)
-    (r1 > r2) && return zero(Tv)
-    i1_= i1+S.offset
-    r1 = searchsortedfirst(S.colval, i1_, r1, r2, Base.Order.Forward)
-    ((r1 > r2) || (S.colval[r1] != i1_)) ? zero(Tv) : S.nzval[r1]
+  m::Int
+  n::Int
+  rowptr::Vector{Ti}
+  colval::Vector{Ti}
+  nzval::Vector{Tv}
+  function SparseMatrixCSR{Bi}(m::Integer, n::Integer, rowptr::Vector{Ti}, colval::Vector{Ti},
+    nzval::Vector{Tv}) where {Bi,Tv,Ti<:Integer}
+    @noinline throwsz(str, k, r) =
+      throw(ArgumentError("$str must be $r, got $k"))
+    m < 0 && throwsz("m",">=0",m)
+    n < 0 && throwsz("n",">=0", n)
+    length(rowptr) != m+1 && throwsz("lengh(rowptr)",m+1,length(rowptr))
+    rowptr[end]-Bi != length(nzval) && throwsz("rowptr[end]-Bi",rowptr[m+1]-Bi, length(nzval))
+    new{Bi,Tv,Ti}(Int(m), Int(n), rowptr, colval, nzval)
+  end
 end
 
 """
-    nnz(S::SparseMatrixCSR{Bi}) where {Bi}
+    SparseMatrixCSR(a::Transpose{Tv,<:SparseMatrixCSC} where Tv)
+   
+Build a 1-based `SparseMatrixCSR` from the lazy transpose of a `SparseMatrixCSC`.
+The resulting matrix takes ownership of the internal storage of input matrix.
+Modifying the values of one, will mutate also the other.
+"""
+function SparseMatrixCSR(a::Transpose{Tv,<:SparseMatrixCSC} where Tv)
+  at = a.parent
+  SparseMatrixCSR{1}(size(a,1),size(a,2),at.colptr,rowvals(at),nonzeros(at))
+end
+
+"""
+    SparseMatrixCSR{Bi}(a::Transpose{Tv,<:SparseMatrixCSC} where Tv) where Bi
+   
+Build a `Bi`-based `SparseMatrixCSR` from the lazy transpose of a `SparseMatrixCSC`.
+The resulting matrix takes ownership of the internal storage of input matrix
+for any `Bi` and modifies the internal storage when `Bi != 1`.
+The input matrix will become unusable in the latter case.
+"""
+function SparseMatrixCSR{Bi}(a::Transpose{Tv,<:SparseMatrixCSC} where Tv) where Bi
+  at = a.parent
+  at.colptr .-= getoffset(Bi)
+  rowvals(at) .-= getoffset(Bi)
+  SparseMatrixCSR{Bi}(size(a,1),size(a,2),at.colptr,rowvals(at),nonzeros(at))
+end
+SparseMatrixCSR{1}(a::Transpose{Tv,<:SparseMatrixCSC} where Tv) = SparseMatrixCSR(a)
+
+"""
+    sparsecsr(args...)
+    sparsecsr(::Val{Bi},args...) where Bi
+
+Create  a `SparseMatrixCSR` with `Bi`-based indexing (1 by default)
+from the same `args...` as one constructs a `SparseMatrixCSC`
+with the [`sparse`](@ref) function.
+"""
+sparsecsr(I,J,args...) = SparseMatrixCSR(transpose(sparse(J,I,args...)))
+sparsecsr(::Val{Bi},I,J,args...) where Bi = SparseMatrixCSR{Bi}(transpose(sparse(J,I,args...)))
+
+size(S::SparseMatrixCSR) = (S.m, S.n)
+IndexStyle(::Type{<:SparseMatrixCSR}) = IndexCartesian()
+function getindex(A::SparseMatrixCSR{Bi,T}, i0::Integer, i1::Integer) where {Bi,T}
+  if !(1 <= i0 <= size(A, 1) && 1 <= i1 <= size(A, 2)); throw(BoundsError()); end
+  o = getoffset(A)
+  r1 = Int(getrowptr(A)[i0]+o)
+  r2 = Int(getrowptr(A)[i0+1]-Bi)
+  (r1 > r2) && return zero(T)
+  i1o = i1-o
+  k = searchsortedfirst(colvals(A), i1o, r1, r2, Base.Order.Forward)
+  ((k > r2) || (colvals(A)[k] != i1o)) ? zero(T) : nonzeros(A)[k]
+end
+
+getrowptr(S::SparseMatrixCSR) = S.rowptr
+getnzval(S::SparseMatrixCSR) = S.nzval
+getcolval(S::SparseMatrixCSR) = S.colval
+
+"""
+    getBi(S::SparseMatrixCSR{Bi}) where {Bi}
+
+Return `Bi`.
+"""
+getBi(S::SparseMatrixCSR{Bi}) where {Bi} = Bi
+
+"""
+    getoffset(S::SparseMatrixCSR{Bi}) where {Bi}
+    getoffset(Bi::Integer)
+
+Return `1-Bi`. Useful to convert from 1-based to `Bi`-based indexing
+(by subtracting the offset).
+"""
+getoffset(S::SparseMatrixCSR{Bi}) where Bi = getoffset(Bi)
+@inline getoffset(Bi::Integer) = 1-Bi
+
+"""
+    issparse(S::SparseMatrixCSR)
+
+Returns `true`.
+"""
+issparse(S::SparseMatrixCSR) = true
+
+"""
+    nnz(S::SparseMatrixCSR)
 
 Returns the number of stored (filled) elements in a sparse array.
 """
-nnz(S::SparseMatrixCSR{Bi}) where {Bi} = length(nonzeros(S))
-
-"""
-    count(pred, S::SparseMatrixCSR) -> Integer
-
-Count the number of elements in nonzeros(S) for which predicate pred returns true. 
-"""
-count(pred, S::SparseMatrixCSR) = count(pred, nonzeros(S))
+nnz(S::SparseMatrixCSR) = length(nonzeros(S))
 
 """
     nonzeros(S::SparseMatrixCSR)
 
-Return a vector of the structural nonzero values in sparse array S. 
+Return a vector (1-based) of the structural nonzero values in sparse array S. 
 This includes zeros that are explicitly stored in the sparse array. 
 The returned vector points directly to the internal nonzero storage of S, 
 and any modifications to the returned vector will mutate S as well.
@@ -131,232 +141,158 @@ and any modifications to the returned vector will mutate S as well.
 nonzeros(S::SparseMatrixCSR) = S.nzval
 
 """
-    nzrange(S::SparseMatrixCSR{Bi}, row::Integer) where {Bi}
-
-Return the range of indices to the structural nonzero values of a 
-sparse matrix row. 
-"""
-nzrange(S::SparseMatrixCSR{Bi}, row::Integer) where {Bi} = S.rowptr[row]-S.offset:S.rowptr[row+1]-Bi
-
-"""
-    function findnz(S::SparseMatrixCSR{Bi,Tv,Ti})
-
-Return a tuple (I, J, V) where I and J are the row and column indices 
-of the stored ("structurally non-zero") values in sparse matrix A, 
-and V is a vector of the values.
-"""
-function findnz(S::SparseMatrixCSR{Bi,Tv,Ti}) where {Bi,Tv,Ti}
-    numnz = nnz(S)
-    I = Vector{Ti}(undef, numnz)
-    J = Vector{Ti}(undef, numnz)
-    V = Vector{Tv}(undef, numnz)
-
-    count = 1
-    @inbounds for row in 1:S.m
-        @inbounds for k in nzrange(S,row)
-            I[count] = S.colval[k]-S.offset
-            J[count] = row
-            V[count] = S.nzval[k]
-            count += 1
-        end
-    end
-
-    return (I, J, V)
-end
-
-"""
     rowvals(S::SparseMatrixCSR)
 
 Return an error. 
 CSR sparse matrices does not contain raw row values.
-It contains row pointers instead that can be accessed
-by using [`nzrange`](@ref).
+It contains col values instead that can be accessed
+by using [`colvals`](@ref).
 """
-rowvals(S::SparseMatrixCSR) = error("CSR sparse matrix does not contain raw row values")
+rowvals(S::SparseMatrixCSR) =
+  throw(ArgumentError("CSR sparse matrix does not contain raw row values"))
 
 """
-    colvals(S::SparseMatrixCSR)
+    colvals(S::SparseMatrixCSR{Bi}) where {Bi}
 
-Return a vector of the col indices of S. 
+Return a vector of the col indices of `S`. The stored values are indexes to arrays
+with `Bi`-based indexing, but the `colvals(S)` array itself is a standard 1-based
+Julia `Vector`.
 Any modifications to the returned vector will mutate S as well. 
-Providing access to how the co,l indices are stored internally 
+Providing access to how the col indices are stored internally 
 can be useful in conjunction with iterating over structural 
 nonzero values. See also [`nonzeros`](@ref) and [`nzrange`](@ref).
 """
-
 colvals(S::SparseMatrixCSR) = S.colval
 
 """
-    sparsecsr(I, J, V, [m, n, combine])
+    nzrange(S::SparseMatrixCSR{Bi}, row::Integer) where {Bi}
 
-Create a sparse matrix S of dimensions m x n such that S[I[k], J[k]] = V[k]. 
-The combine function is used to combine duplicates. 
-If m and n are not specified, they are set to 
-maximum(I) and maximum(J) respectively. 
-If the combine function is not supplied, combine defaults to + 
-unless the elements of V are Booleans in which case combine defaults to |. 
-All elements of I must satisfy 1 <= I[k] <= m, 
-and all elements of J must satisfy 1 <= J[k] <= n. 
-Numerical zeros in (I, J, V) are retained as structural nonzeros.
+Return the range of indices to the structural nonzero values of a 
+sparse matrix row. The returned range of indices is always 1-based even for `Bi != 1`.
 """
-sparsecsr(I,J,args...) = 
-        SparseMatrixCSR(sparse(J,I,args...))
-sparsecsr(::Type{SparseMatrixCSR},I,J,args...) = 
-        sparsecsr(I,J,args...)
-sparsecsr(::Type{SparseMatrixCSR{Bi}},I,J,args...) where {Bi} = 
-        SparseMatrixCSR{Bi}(sparse(J,I,args...))
-sparsecsr(::Type{SparseMatrixCSR{Bi}},I,J,V,m,n,args...) where {Bi} = 
-        SparseMatrixCSR{Bi}(sparse(J,I,V,n,m,args...))
-sparsecsr(::Type{SparseMatrixCSR{Bi,Tv,Ti}},I::Vector{Ti},J::Vector{Ti},args...) where {Bi,Tv,Ti} = 
-        SparseMatrixCSR{Bi}(sparse(J,I,args...))
-sparsecsr(::Type{SparseMatrixCSR{Bi,Tv,Ti}},I::Vector{Ti},J::Vector{Ti},V::Vector{Tv},m,n,args...) where {Bi,Tv,Ti} = 
-        SparseMatrixCSR{Bi}(sparse(J,I,V,n,m,args...))
-
+nzrange(S::SparseMatrixCSR{Bi}, row::Integer) where {Bi} = S.rowptr[row]+getoffset(S):S.rowptr[row+1]-Bi
 
 """
-    function push_coo!(::Type{SparseMatrixCSR},I,J,V,ik,jk,vk) 
+    findnz(S::SparseMatrixCSR{Bi,Tv,Ti})
 
-Inserts entries in COO vectors for further building a SparseMatrixCSR.
+Return a tuple `(I, J, V)` where `I` and `J` are the row and column 1-based indices 
+of the stored ("structurally non-zero") values in sparse matrix A, 
+and V is a vector of the values. The returned vectors are newly allocated
+and are unrelated to the internal storage of matrix `S`.
 """
-function push_coo!(::Type{SparseMatrixCSR},
-    I::Vector,J::Vector,V::Vector,ik::Integer,jk::Integer,vk::Number) where {Bi}
-    (push!(I, ik), push!(J, jk), push!(V, vk))
-end
-
-push_coo!(::Type{SparseMatrixCSR{Bi}}, I, J, V, ik, jk, vk) where {Bi} = 
-    push_coo!(SparseMatrixCSR, I, J, V, ik, jk, vk)
-
-push_coo!(::Type{SparseMatrixCSR{Bi,Tv,Ti}}, I, J, V, ik, jk, vk) where {Bi,Tv,Ti} = 
-    push_coo!(SparseMatrixCSR, I, J, V, ik, jk, vk)
-
-"""
-    function finalize_coo!(::Type{SparseMatrixCSR},I,J,V,m,n) 
-
-Finalize COO arrays for building a SparseMatrixCSR.
-"""
-function finalize_coo!(::Type{SparseMatrixCSR},
-    I::Vector,J::Vector,V::Vector,m::Integer,n::Integer) 
-end
-
-finalize_coo!(T::Type{SparseMatrixCSR{Bi}}, I , J, V, m, n)  where {Bi} = 
-    finalize_coo!(SparseMatrixCSR, I, J, V, m, n)
-
-finalize_coo!(T::Type{SparseMatrixCSR{Bi,Tv,Ti}}, I , J, V, m, n)  where {Bi,Tv,Ti} = 
-    finalize_coo!(SparseMatrixCSR, I, J, V, m, n)
-
-"""
-    function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector{T}) where {T}
-
-Calculates the matrix-vector product ``Av`` and stores the result in `y`,
-overwriting the existing value of `y`. 
-"""
-function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector{T}) where {T}
-    A.n == size(v, 1) || throw(DimensionMismatch())
-    A.m == size(y, 1) || throw(DimensionMismatch())
-
-    y .= zero(T)
-    for row = 1:size(y, 1)
-        @inbounds for nz in nzrange(A,row)
-            col = A.colval[nz]-A.offset
-            y[row] += A.nzval[nz]*v[col]
-        end
+function findnz(S::SparseMatrixCSR{Bi,Tv,Ti}) where {Bi,Tv,Ti}
+  numnz = nnz(S)
+  I = Vector{Ti}(undef, numnz)
+  J = Vector{Ti}(undef, numnz)
+  V = Vector{Tv}(undef, numnz)
+  count = 1
+  o = getoffset(S)
+  @inbounds for row in 1:size(S,1)
+    @inbounds for k in nzrange(S,row)
+      I[count] = row
+      J[count] = S.colval[k]+o
+      V[count] = S.nzval[k]
+      count += 1
     end
-    return y
+  end
+  return (I, J, V)
 end
 
-*(A::SparseMatrixCSR, v::Vector) = (y = similar(v,A.n);mul!(y,A,v))
-
-
 """
-    function hasrowmajororder(::Type{SparseMatrixCSR})
+    count(pred, S::SparseMatrixCSR)
+    count(S::SparseMatrixCSR)
 
-Check if values are stored in row-major order.
-Return true.
+Count the number of elements in `nonzeros(S)` for which predicate `pred` returns `true`. 
+If  `pred` not given, it counts the number of `true` values.
 """
-hasrowmajororder(::Type{SparseMatrixCSR}) = true
-hasrowmajororder(a::SparseMatrixCSR) = hasrowmajororder(SparseMatrixCSR)
+count(pred, S::SparseMatrixCSR) = count(pred, nonzeros(S))
+count(S::SparseMatrixCSR) = count(i->true, nonzeros(S))
 
-"""
-    function hascolmajororder(::Type{SparseMatrixCSR})
+function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector, α::Number, β::Number)
+  A.n == size(v, 1) || throw(DimensionMismatch())
+  A.m == size(y, 1) || throw(DimensionMismatch())
+  if β != 1
+    β != 0 ? rmul!(y, β) : fill!(y, zero(eltype(y)))
+  end
+  for row = 1:size(y, 1)
+    @inbounds for nz in nzrange(A,row)
+      col = A.colval[nz]+getoffset(A)
+      y[row] += A.nzval[nz]*v[col]*α
+    end
+  end
+  return y
+end
 
-Check if values are stored in col-major order.
-Return false.
-"""
-hascolmajororder(::Type{SparseMatrixCSR}) = false
-hascolmajororder(a::SparseMatrixCSR) = hascolmajororder(SparseMatrixCSR)
+function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector)
+  A.n == size(v, 1) || throw(DimensionMismatch())
+  A.m == size(y, 1) || throw(DimensionMismatch())
+  fill!(y, zero(eltype(y)))
+  for row = 1:size(y, 1)
+    @inbounds for nz in nzrange(A,row)
+      col = A.colval[nz]+getoffset(A)
+      y[row] += A.nzval[nz]*v[col]
+    end
+  end
+  return y
+end
 
-"""
-    function getptr(S::SparseMatrixCSR)
+*(A::SparseMatrixCSR, v::Vector) = (y = similar(v,size(A,1));mul!(y,A,v))
 
-Return rows pointer.
-"""
-getptr(S::SparseMatrixCSR) = S.rowptr
+function show(io::IO, ::MIME"text/plain", S::SparseMatrixCSR)
+  xnnz = nnz(S)
+  print(io, S.m, "×", S.n, " ", typeof(S), " with ", xnnz, " stored ",
+        xnnz == 1 ? "entry" : "entries")
+  if xnnz != 0
+    print(io, ":")
+    show(IOContext(io, :typeinfo => eltype(S)), S)
+  end
+end
+show(io::IO, S::SparseMatrixCSR) = show(convert(IOContext, io), S::SparseMatrixCSR)
 
-"""
-    function getindices(S::SparseMatrixCSR)
+function show(io::IOContext, S::SparseMatrixCSR{Bi}) where{Bi}
+  nnz(S) == 0 && return show(io, MIME("text/plain"), S)
+  ioc = IOContext(io, :compact => true)
 
-Return column indices.
-"""
-getindices(S::SparseMatrixCSR) = colvals(S)
-
-
-"""
-    function convert(::Type{SparseMatrixCSR}, x::AbstractSparseMatrix)
-
-Convert x to a value of type SymSparseMatrixCSR.
-"""
-convert(::Type{SparseMatrixCSR}, x::AbstractSparseMatrix)  = convert(SparseMatrixCSR{1}, x)
-
-function convert(::Type{SparseMatrixCSR{Bi}}, x::SparseMatrixCSR{xBi}) where {Bi,xBi}
-    if Bi == xBi
-        return x
+  function _format_line(r, col, padr, padc,o)
+    print(ioc, "\n  [", rpad(col+o, padr), ", ", lpad(S.colval[r]+o, padc), "]  =  ")
+    if isassigned(S.nzval, Int(r))
+      show(ioc, S.nzval[r])
     else
-        return SparseMatrixCSR{Bi}( x.m, 
-                                    x.n, 
-                                    copy(getptr(x)).-x.offset, 
-                                    copy(getindices(x)).-x.offset, 
-                                    copy(nonzeros(x)))
+      print(ioc, Base.undef_ref_str)
     end
-end
+  end
 
-function convert(::Type{SparseMatrixCSR{Bi,Tv,Ti}}, x::SparseMatrixCSR{xBi,xTv,xTi}) where {Bi,Tv,Ti,xBi,xTv,xTi}
-    if (Bi,Tv,Ti) == (xBi,xTv,xTi)
-        return x
-    else
-        return SparseMatrixCSR{Bi}( x.m, 
-                                    x.n, 
-                                    convert(Vector{Ti}, copy(getptr(x)).-x.offset), 
-                                    convert(Vector{Ti}, copy(getindices(x)).-x.offset), 
-                                    convert(Vector{Tv}, copy(nonzeros(x))))
+  function _get_cols(from, to)
+    idx = eltype(S.rowptr)[]
+    c = searchsortedlast(S.rowptr, from)
+    for i = from:to
+      while i == S.rowptr[c+1]
+        c +=1
+      end
+      push!(idx, c)
     end
-end
+    idx
+  end
 
-function convert(::Type{SparseMatrixCSR{Bi}}, x::SparseMatrixCSC) where {Bi}
-    A = sparse(transpose(x))
-    (m, n) = size(A)
-    return SparseMatrixCSR{Bi}(m, n, getptr(A), getindices(A), nonzeros(A))
-end
-
-function convert(::Type{SparseMatrixCSR{Bi,Tv,Ti}}, x::SparseMatrixCSC) where {Bi,Tv,Ti}
-    A = sparse(transpose(x))
-    return SparseMatrixCSR{Bi}( A.m, 
-                                A.n, 
-                                convert(Vector{Ti}, getptr(A)), 
-                                convert(Vector{Ti}, getindices(A)), 
-                                convert(Vector{Tv}, nonzeros(A)))
-end
-
-"""
-    function convert(::Type{SparseMatrixCSC}, x::SparseMatrixCSR)
-
-Convert x to a value of type SparseMatrixCSC.
-"""
-function convert(::Type{SparseMatrixCSC{Tv,Ti}}, x::SparseMatrixCSR{xBi,xTv,xTi}) where {Tv,Ti,xBi,xTv,xTi}
-    A = sparse(transpose(x))
-    return SparseMatrixCSR{Bi}( A.m, 
-                                A.n, 
-                                convert(Vector{Ti}, getptr(A)), 
-                                convert(Vector{Ti}, getindices(A)), 
-                                convert(Vector{Tv}, nonzeros(A)))
+  rows = displaysize(io)[1] - 4 # -4 from [Prompt, header, newline after elements, new prompt]
+  if !get(io, :limit, false) || rows >= nnz(S) # Will the whole matrix fit when printed?
+    cols = _get_cols(Bi, nnz(S)-getoffset(S))
+    padr, padc = ndigits.((maximum(S.colval[1:nnz(S)]), cols[end]))
+    _format_line.(1:nnz(S), cols.-getoffset(S), padr, padc,getoffset(S))
+  else
+    if rows <= 2
+      print(io, "\n  \u22ee")
+      return
+    end
+    s1, e1 = 1, div(rows - 1, 2) # -1 accounts for \vdots
+    s2, e2 = nnz(S) - (rows - 1 - e1) + 1, nnz(S)
+    cols1, cols2 = _get_cols(s1-getoffset(S), e1-getoffset(S)), _get_cols(s2-getoffset(S), e2-getoffset(S))
+    padr = ndigits(max(maximum(S.colval[s1:e1]), maximum(S.colval[s2:e2])))
+    padc = ndigits(cols2[end])
+    _format_line.(s1:e1, cols1, padr, padc)
+    print(io, "\n  \u22ee")
+    _format_line.(s2:e2, cols2, padr, padc)
+  end
+  return
 end
 
