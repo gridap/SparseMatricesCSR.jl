@@ -15,7 +15,7 @@ export colvals, getBi, getoffset
 
 include("SparseMatrixCSR.jl")
 
-include("SymSparseMatrixCSR.jl")
+#include("SymSparseMatrixCSR.jl")
 
 end # module
 

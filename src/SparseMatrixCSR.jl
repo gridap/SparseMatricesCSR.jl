@@ -7,7 +7,7 @@ in the Compressed Sparse Row format with `Bi`-based indexing (typically 0 or 1).
 The standard way of constructing `SparseMatrixCSR` is through the 
 [`sparsecsr`](@ref) function.
 
-#Properties
+# Properties
 
 - `m::Int` Number of columns
 - `n::Int` Number of rows
@@ -15,7 +15,7 @@ The standard way of constructing `SparseMatrixCSR` is through the
 - `colval::Vector{Ti}` Col indices (`Bi`-based) of stored values
 - `nzval::Vector{Tv}`  Stored values, typically non zeros
 
-#Inner constructor
+# Inner constructor
 
     SparseMatrixCSR{Bi}(
       m::Integer,
