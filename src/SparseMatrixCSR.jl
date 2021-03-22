@@ -87,6 +87,33 @@ sparsecsr(::Val{Bi},I,J,V,m,n) where Bi = SparseMatrixCSR{Bi}(transpose(sparse(J
 sparsecsr(::Val{Bi},I,J,V,m,n,combine) where Bi = SparseMatrixCSR{Bi}(transpose(sparse(J,I,V,n,m,combine)))
 dimlub(I) = isempty(I) ? 0 : Int(maximum(I))
 
+Base.convert(::Type{T},a::T) where T<:SparseMatrixCSR = a
+function Base.convert(
+  ::Type{SparseMatrixCSR{Bi,Tv,Ti}},a::SparseMatrixCSR{Bi}) where {Bi,Tv,Ti}
+  rowptr = convert(Vector{Ti},a.rowptr)
+  colval = convert(Vector{Ti},a.colval)
+  nzval = convert(Vector{Tv},a.nzval)
+  SparseMatrixCSR{Bi}(a.m,a.n,rowptr,colval,nzval)
+end
+function Base.convert(
+  ::Type{SparseMatrixCSR{Bi,Tv,Ti}},a::SparseMatrixCSR{Bj}) where {Bi,Tv,Ti,Bj}
+  rowptr = Vector{Ti}(undef,length(a.rowptr))
+  colval = Vector{Ti}(undef,length(a.colval))
+  rowptr .= a.rowptr .+ (Bi-Bj)
+  colval .= a.colval .+ (Bi-Bj)
+  nzval = convert(Vector{Tv},a.nzval)
+  SparseMatrixCSR{Bi}(a.m,a.n,rowptr,colval,nzval)
+end
+function Base.convert(
+  ::Type{SparseMatrixCSR{Bi,Tv,Ti}},a::Transpose{Tu,<:SparseMatrixCSC} where Tu) where {Bi,Tv,Ti}
+  convert(SparseMatrixCSR{Bi,Tv,Ti},SparseMatrixCSR{Bi}(a))
+end
+function Base.convert(
+  ::Type{SparseMatrixCSR{Bi,Tv,Ti}},a::AbstractMatrix) where {Bi,Tv,Ti}
+  at = convert(SparseMatrixCSC{Tv,Ti},transpose(a))
+  convert(SparseMatrixCSR{Bi,Tv,Ti},transpose(at))
+end
+
 size(S::SparseMatrixCSR) = (S.m, S.n)
 IndexStyle(::Type{<:SparseMatrixCSR}) = IndexCartesian()
 function getindex(A::SparseMatrixCSR{Bi,T}, i0::Integer, i1::Integer) where {Bi,T}

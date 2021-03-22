@@ -38,6 +38,15 @@ function test_csr(Bi,Tv,Ti)
   CSR = sparsecsr(Val(Bi),I,J,V,maxrows,maxcols)
   @test CSR == CSC
 
+  CSR2 = convert(typeof(CSR),CSR)
+  @test CSR2 === CSR
+  CSR2 = convert(SparseMatrixCSR{0,Float64,Int32},CSR)
+  @test CSR2 == CSR
+  CSR2 = convert(SparseMatrixCSR{0,Float64,Int32},CSC)
+  @test CSR2 == CSC
+  CSR2 = convert(SparseMatrixCSR{0,Float64,Int32},collect(CSC))
+  @test CSR2 == CSC
+
   @test size(CSR) == size(CSC)
   @test eltype(CSR) == Tv
   @test isa(CSR,SparseMatrixCSR{Bi,Tv,Ti})
