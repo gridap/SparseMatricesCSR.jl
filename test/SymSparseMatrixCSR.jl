@@ -1,4 +1,4 @@
-module SparseMatrixCSRTests
+module SymSparseMatrixCSRTests
 
 using Test
 using SparseMatricesCSR
@@ -44,6 +44,11 @@ function test_csr(Bi,Tv,Ti)
   @test CSR == CSC
   CSR = symsparsecsr(Val(Bi),copy(I),copy(J),copy(V),maxrows,maxcols;symmetrize=true)
   @test CSR == CSC
+
+  CSR2 = convert(typeof(CSR),CSR)
+  @test CSR2 === CSR
+  CSR2 = convert(SymSparseMatrixCSR{0,Float64,Int32},CSR)
+  @test CSR2 == CSR
 
   @test size(CSR) == size(CSC)
   @test eltype(CSR) == Tv

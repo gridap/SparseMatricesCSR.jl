@@ -187,3 +187,9 @@ function show(io::IO, ::MIME"text/plain", S::SymSparseMatrixCSR)
 end
 show(io::IO, S::SymSparseMatrixCSR) = show(io, S.uppertrian)
 
+Base.convert(::Type{T},a::T) where T<:SymSparseMatrixCSR = a
+function Base.convert(
+  ::Type{SymSparseMatrixCSR{Bi,Tv,Ti}},a::SymSparseMatrixCSR) where {Bi,Tv,Ti}
+  utrian = convert(SparseMatrixCSR{Bi,Tv,Ti},a.uppertrian)
+  SymSparseMatrixCSR(utrian)
+end
