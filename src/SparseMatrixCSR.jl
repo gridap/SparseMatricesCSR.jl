@@ -2,9 +2,9 @@
 """
     SparseMatrixCSR{Bi,Tv,Ti<:Integer} <: AbstractSparseMatrix{Tv,Ti}
 
-Matrix type for storing sparse matrices 
+Matrix type for storing sparse matrices
 in the Compressed Sparse Row format with `Bi`-based indexing (typically 0 or 1).
-The standard way of constructing `SparseMatrixCSR` is through the 
+The standard way of constructing `SparseMatrixCSR` is through the
 [`sparsecsr`](@ref) function.
 
 # Properties
@@ -45,7 +45,7 @@ end
 
 """
     SparseMatrixCSR(a::Transpose{Tv,<:SparseMatrixCSC} where Tv)
-   
+
 Build a 1-based `SparseMatrixCSR` from the lazy transpose of a `SparseMatrixCSC`.
 The resulting matrix takes ownership of the internal storage of input matrix.
 Modifying the values of one, will mutate also the other.
@@ -57,7 +57,7 @@ end
 
 """
     SparseMatrixCSR{Bi}(a::Transpose{Tv,<:SparseMatrixCSC} where Tv) where Bi
-   
+
 Build a `Bi`-based `SparseMatrixCSR` from the lazy transpose of a `SparseMatrixCSC`.
 The resulting matrix takes ownership of the internal storage of input matrix
 for any `Bi` and modifies the internal storage when `Bi != 1`.
@@ -114,6 +114,10 @@ function Base.convert(
   convert(SparseMatrixCSR{Bi,Tv,Ti},transpose(at))
 end
 
+function Base.copy(a::SparseMatrixCSR{Bi}) where Bi
+  SparseMatrixCSR{Bi}(a.m,a.n,copy(a.rowptr),copy(a.colval),copy(a.nzval))
+end
+
 size(S::SparseMatrixCSR) = (S.m, S.n)
 IndexStyle(::Type{<:SparseMatrixCSR}) = IndexCartesian()
 function getindex(A::SparseMatrixCSR{Bi,T}, i0::Integer, i1::Integer) where {Bi,T}
@@ -164,9 +168,9 @@ nnz(S::SparseMatrixCSR) = length(nonzeros(S))
 """
     nonzeros(S::SparseMatrixCSR)
 
-Return a vector (1-based) of the structural nonzero values in sparse array S. 
-This includes zeros that are explicitly stored in the sparse array. 
-The returned vector points directly to the internal nonzero storage of S, 
+Return a vector (1-based) of the structural nonzero values in sparse array S.
+This includes zeros that are explicitly stored in the sparse array.
+The returned vector points directly to the internal nonzero storage of S,
 and any modifications to the returned vector will mutate S as well.
 """
 nonzeros(S::SparseMatrixCSR) = S.nzval
@@ -177,9 +181,9 @@ nonzeros(S::SparseMatrixCSR) = S.nzval
 Return a vector of the col indices of `S`. The stored values are indexes to arrays
 with `Bi`-based indexing, but the `colvals(S)` array itself is a standard 1-based
 Julia `Vector`.
-Any modifications to the returned vector will mutate S as well. 
-Providing access to how the col indices are stored internally 
-can be useful in conjunction with iterating over structural 
+Any modifications to the returned vector will mutate S as well.
+Providing access to how the col indices are stored internally
+can be useful in conjunction with iterating over structural
 nonzero values. See also [`nonzeros`](@ref) and [`nzrange`](@ref).
 """
 colvals(S::SparseMatrixCSR) = S.colval
@@ -187,7 +191,7 @@ colvals(S::SparseMatrixCSR) = S.colval
 """
     nzrange(S::SparseMatrixCSR{Bi}, row::Integer) where {Bi}
 
-Return the range of indices to the structural nonzero values of a 
+Return the range of indices to the structural nonzero values of a
 sparse matrix row. The returned range of indices is always 1-based even for `Bi != 1`.
 """
 nzrange(S::SparseMatrixCSR{Bi}, row::Integer) where {Bi} = S.rowptr[row]+getoffset(S):S.rowptr[row+1]-Bi
@@ -195,8 +199,8 @@ nzrange(S::SparseMatrixCSR{Bi}, row::Integer) where {Bi} = S.rowptr[row]+getoffs
 """
     findnz(S::SparseMatrixCSR{Bi,Tv,Ti})
 
-Return a tuple `(I, J, V)` where `I` and `J` are the row and column 1-based indices 
-of the stored ("structurally non-zero") values in sparse matrix A, 
+Return a tuple `(I, J, V)` where `I` and `J` are the row and column 1-based indices
+of the stored ("structurally non-zero") values in sparse matrix A,
 and V is a vector of the values. The returned vectors are newly allocated
 and are unrelated to the internal storage of matrix `S`.
 """
@@ -222,7 +226,7 @@ end
     count(pred, S::SparseMatrixCSR)
     count(S::SparseMatrixCSR)
 
-Count the number of elements in `nonzeros(S)` for which predicate `pred` returns `true`. 
+Count the number of elements in `nonzeros(S)` for which predicate `pred` returns `true`.
 If  `pred` not given, it counts the number of `true` values.
 """
 count(pred, S::SparseMatrixCSR) = count(pred, nonzeros(S))
@@ -317,4 +321,3 @@ function show(io::IOContext, S::SparseMatrixCSR{Bi}) where{Bi}
   end
   return
 end
-

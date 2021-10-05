@@ -1,6 +1,6 @@
 name = "SparseMatricesCSR"
 uuid = "a0a7dd2c-ebf4-11e9-1f05-cf50bc540ca1"
-authors = ["Víctor Sande <vsande@cimne.upc.edu>","Francesc Verdugo <fverdugo@cimne.upc.edu>"]
+authors = ["Víctor Sande <vsande@cimne.upc.edu>", "Francesc Verdugo <fverdugo@cimne.upc.edu>"]
 version = "0.6.1"
 
 [deps]

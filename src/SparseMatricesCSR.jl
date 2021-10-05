@@ -3,7 +3,7 @@ module SparseMatricesCSR
 using SparseArrays
 using LinearAlgebra
 
-import Base: convert, size, getindex, show, count, *, IndexStyle
+import Base: convert, copy, size, getindex, show, count, *, IndexStyle
 import LinearAlgebra: mul!
 import SparseArrays: nnz, getnzval, nonzeros, nzrange
 import SparseArrays: findnz, rowvals, getnzval, issparse
@@ -39,4 +39,3 @@ end # module
 # TODO dropzeros!
 # TODO permute
 # TODO permute!
-

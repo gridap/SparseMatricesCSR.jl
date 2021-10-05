@@ -22,9 +22,11 @@ function test_csr(Bi,Tv,Ti)
   if Bi == 1
     CSR = sparsecsr(I,J,V)
     @test CSR == CSC
+    @test copy(CSR) == CSC
   end
   CSR = sparsecsr(Val(Bi),I,J,V)
   @test CSR == CSC
+  @test copy(CSR) == CSC
   @test eltype(CSR) == Tv
   @test isa(CSR,SparseMatrixCSR{Bi,Tv,Ti})
 
@@ -32,20 +34,26 @@ function test_csr(Bi,Tv,Ti)
   if Bi == 1
     CSR = sparsecsr(I,J,V,maxrows,maxcols)
     @test CSR == CSC
+    @test copy(CSR) == CSC
   end
   CSR = sparsecsr(Val(Bi),I,J,V,maxrows,maxcols)
   @test CSR == CSC
+  @test copy(CSR) == CSC
   CSR = sparsecsr(Val(Bi),I,J,V,maxrows,maxcols)
   @test CSR == CSC
+  @test copy(CSR) == CSC
 
   CSR2 = convert(typeof(CSR),CSR)
   @test CSR2 === CSR
   CSR2 = convert(SparseMatrixCSR{0,Float64,Int32},CSR)
   @test CSR2 == CSR
+  @test copy(CSR2) == CSR
   CSR2 = convert(SparseMatrixCSR{0,Float64,Int32},CSC)
   @test CSR2 == CSC
+  @test copy(CSR2) == CSC
   CSR2 = convert(SparseMatrixCSR{0,Float64,Int32},collect(CSC))
   @test CSR2 == CSC
+  @test copy(CSR2) == CSC
 
   @test size(CSR) == size(CSC)
   @test eltype(CSR) == Tv
@@ -86,4 +94,3 @@ for Bi in (0,1)
 end
 
 end # module
-
