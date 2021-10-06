@@ -82,6 +82,7 @@ function test_csr(Bi,Tv,Ti)
   @test y ≈ z
 
   @test CSR*x ≈ CSC*x
+
 end
 
 for Bi in (0,1)
@@ -91,18 +92,5 @@ for Bi in (0,1)
     end
   end
 end
-
-I = [1,1,2,2,2,3,3]
-J = [1,2,1,2,3,2,3]
-V = [4.0,1.0,-1.0,4.0,1.0,-1.0,4.0]
-CSR=sparsecsr(I,J,V)
-CSC=sparse(I,J,V)
-x=rand(3)
-@test norm(CSR\x-CSC\x) < 1.0e-14
-fact=lu(CSR)
-lu!(fact,CSR)
-y=similar(x)
-ldiv!(y,fact,x)
-@test norm(y-CSC\x) < 1.0e-14
 
 end # module
