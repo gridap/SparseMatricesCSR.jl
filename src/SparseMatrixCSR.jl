@@ -118,8 +118,12 @@ function Base.copy(a::SparseMatrixCSR{Bi}) where Bi
   SparseMatrixCSR{Bi}(a.m,a.n,copy(a.rowptr),copy(a.colval),copy(a.nzval))
 end
 
+_copy_and_increment(x) = copy(x) .+ 1
+
 function LinearAlgebra.lu(a::SparseMatrixCSR{0})
-  @assert false "Base.lu(a::SparseMatrixCSR{0}) not yet implemented"
+  rowptr = _copy_and_increment(a.rowptr)
+  colval = _copy_and_increment(a.colval)
+  Transpose(lu(SparseMatrixCSC(a.m,a.n,rowptr,colval,a.nzval)))
 end
 
 function LinearAlgebra.lu(a::SparseMatrixCSR{1})
@@ -130,6 +134,14 @@ function LinearAlgebra.lu!(
     translu::Transpose{T,<:SuiteSparse.UMFPACK.UmfpackLU{T}},
     a::SparseMatrixCSR{1}) where {T}
   Transpose(lu!(translu.parent,SparseMatrixCSC(a.m,a.n,a.rowptr,a.colval,a.nzval)))
+end
+
+function LinearAlgebra.lu!(
+  translu::Transpose{T,<:SuiteSparse.UMFPACK.UmfpackLU{T}},
+  a::SparseMatrixCSR{0}) where {T}
+  rowptr = _copy_and_increment(a.rowptr)
+  colval = _copy_and_increment(a.colval)
+  Transpose(lu!(translu.parent,SparseMatrixCSC(a.m,a.n,rowptr,colval,a.nzval)))
 end
 
 size(S::SparseMatrixCSR) = (S.m, S.n)

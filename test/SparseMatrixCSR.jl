@@ -84,6 +84,19 @@ function test_csr(Bi,Tv,Ti)
   @test CSR*x ≈ CSC*x
 end
 
+function test_lu(Bi,I,J,V)
+  CSR=sparsecsr(Val(Bi),I,J,V)
+  CSC=sparse(I,J,V)
+  x=rand(3)
+  @test norm(CSR\x-CSC\x) < 1.0e-14
+  fact=lu(CSR)
+  lu!(fact,CSR)
+  y=similar(x)
+  ldiv!(y,fact,x)
+  @test norm(y-CSC\x) < 1.0e-14
+end
+
+
 for Bi in (0,1)
   for Tv in (Float32,Float64)
     for Ti in (Int32,Int64)
@@ -95,14 +108,7 @@ end
 I = [1,1,2,2,2,3,3]
 J = [1,2,1,2,3,2,3]
 V = [4.0,1.0,-1.0,4.0,1.0,-1.0,4.0]
-CSR=sparsecsr(I,J,V)
-CSC=sparse(I,J,V)
-x=rand(3)
-@test norm(CSR\x-CSC\x) < 1.0e-14
-fact=lu(CSR)
-lu!(fact,CSR)
-y=similar(x)
-ldiv!(y,fact,x)
-@test norm(y-CSC\x) < 1.0e-14
+test_lu(0,I,J,V)
+test_lu(1,I,J,V)
 
 end # module
