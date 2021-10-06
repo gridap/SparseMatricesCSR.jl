@@ -118,20 +118,6 @@ function Base.copy(a::SparseMatrixCSR{Bi}) where Bi
   SparseMatrixCSR{Bi}(a.m,a.n,copy(a.rowptr),copy(a.colval),copy(a.nzval))
 end
 
-function LinearAlgebra.lu(a::SparseMatrixCSR{0})
-  @assert false "Base.lu(a::SparseMatrixCSR{0}) not yet implemented"
-end
-
-function LinearAlgebra.lu(a::SparseMatrixCSR{1})
-  Transpose(lu(SparseMatrixCSC(a.m,a.n,a.rowptr,a.colval,a.nzval)))
-end
-
-function LinearAlgebra.lu!(
-    translu::Transpose{T,<:SuiteSparse.UMFPACK.UmfpackLU{T}},
-    a::SparseMatrixCSR{1}) where {T}
-  Transpose(lu!(translu.parent,SparseMatrixCSC(a.m,a.n,a.rowptr,a.colval,a.nzval)))
-end
-
 size(S::SparseMatrixCSR) = (S.m, S.n)
 IndexStyle(::Type{<:SparseMatrixCSR}) = IndexCartesian()
 function getindex(A::SparseMatrixCSR{Bi,T}, i0::Integer, i1::Integer) where {Bi,T}

@@ -2,10 +2,9 @@ module SparseMatricesCSR
 
 using SparseArrays
 using LinearAlgebra
-using SuiteSparse
 
 import Base: convert, copy, size, getindex, show, count, *, IndexStyle
-import LinearAlgebra: mul!, lu, lu!
+import LinearAlgebra: mul!
 import SparseArrays: nnz, getnzval, nonzeros, nzrange
 import SparseArrays: findnz, rowvals, getnzval, issparse
 
