@@ -8,7 +8,7 @@ Matrix type for storing symmetric sparse matrices in the
 Compressed Sparse Row format with `Bi`-based indexing (typically 0 or 1).
 Only the upper triangle is stored (including the non zero diagonal entries),
 which is represented by a `SparseMatrixCSR`.
-The standard way of constructing a `SymSparseMatrixCSR` is through the 
+The standard way of constructing a `SymSparseMatrixCSR` is through the
 [`symsparsecsr`](@ref) function.
 """
 struct SymSparseMatrixCSR{Bi,T,Ti<:Integer} <: AbstractSparseMatrix{T,Ti}
@@ -90,10 +90,10 @@ nnz(S::SymSparseMatrixCSR) = nnz(S.uppertrian)
 """
     nonzeros(S::SymSparseMatrixCSR)
 
-Return a vector (1-based) of the structural nonzero values in sparse array S. 
+Return a vector (1-based) of the structural nonzero values in sparse array S.
 This includes zeros that are explicitly stored in the sparse array,
 which correspond to the nonzero entries in the upper triangle and diagonal.
-The returned vector points directly to the internal nonzero storage of S, 
+The returned vector points directly to the internal nonzero storage of S,
 and any modifications to the returned vector will mutate S as well.
 """
 nonzeros(S::SymSparseMatrixCSR) = nonzeros(S.uppertrian)
@@ -104,9 +104,9 @@ nonzeros(S::SymSparseMatrixCSR) = nonzeros(S.uppertrian)
 Return a vector of the col indices of `S`. The stored values are indexes to arrays
 with `Bi`-based indexing, but the `colvals(S)` array itself is a standard 1-based
 Julia `Vector`.
-Any modifications to the returned vector will mutate S as well. 
-Providing access to how the col indices are stored internally 
-can be useful in conjunction with iterating over structural 
+Any modifications to the returned vector will mutate S as well.
+Providing access to how the col indices are stored internally
+can be useful in conjunction with iterating over structural
 nonzero values. See also [`nonzeros`](@ref) and [`nzrange`](@ref).
 """
 colvals(S::SymSparseMatrixCSR) = colvals(S.uppertrian)
@@ -114,7 +114,7 @@ colvals(S::SymSparseMatrixCSR) = colvals(S.uppertrian)
 """
     nzrange(S::SymSparseMatrixCSR, row::Integer)
 
-Return the range of indices to the structural nonzero values of a 
+Return the range of indices to the structural nonzero values of a
 sparse matrix row section being in the diagonal or upper triangle.
 The returned range of indices is always 1-based even for `Bi != 1`.
 """
@@ -123,8 +123,8 @@ nzrange(S::SymSparseMatrixCSR, row::Integer) = nzrange(S.uppertrian, row)
 """
     findnz(S::SymSparseMatrixCSR)
 
-Return a tuple `(I, J, V)` where `I` and `J` are the row and column 1-based indices 
-of the stored ("structurally non-zero in diagonal + upper trianle") values in sparse matrix A, 
+Return a tuple `(I, J, V)` where `I` and `J` are the row and column 1-based indices
+of the stored ("structurally non-zero in diagonal + upper trianle") values in sparse matrix A,
 and V is a vector of the values. The returned vectors are newly allocated
 and are unrelated to the internal storage of matrix `S`.
 """
@@ -134,11 +134,15 @@ findnz(S::SymSparseMatrixCSR) = findnz(S.uppertrian)
     count(pred, S::SymSparseMatrixCSR)
     count(S::SymSparseMatrixCSR)
 
-Count the number of elements in `nonzeros(S)` for which predicate `pred` returns `true`. 
+Count the number of elements in `nonzeros(S)` for which predicate `pred` returns `true`.
 If  `pred` not given, it counts the number of `true` values.
 """
 count(pred, S::SymSparseMatrixCSR) = count(pred, S.uppertrian)
 count(S::SymSparseMatrixCSR) = count(i->true, S)
+
+function LinearAlgebra.fillstored!(a::SymSparseMatrixCSR,v)
+  LinearAlgebra.fillstored!(a.uppertrian,v)
+end
 
 function mul!(y::AbstractVector,A::SymSparseMatrixCSR,v::AbstractVector, α::Number, β::Number)
   A.uppertrian.n == size(v, 1) || throw(DimensionMismatch())
@@ -177,7 +181,7 @@ end
 
 function show(io::IO, ::MIME"text/plain", S::SymSparseMatrixCSR)
     xnnz = nnz(S)
-    print(io, S.uppertrian.m, "×", S.uppertrian.n, " ", 
+    print(io, S.uppertrian.m, "×", S.uppertrian.n, " ",
               typeof(S), " with ", xnnz, " stored ",
               xnnz == 1 ? "entry" : "entries")
     if xnnz != 0
