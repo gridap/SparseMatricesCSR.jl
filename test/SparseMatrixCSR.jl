@@ -78,6 +78,10 @@ function test_csr(Bi,Tv,Ti)
   @test y ≈ z
   @test CSR*x ≈ CSC*x
 
+  mul!(y,CSR,x,1,2)
+  mul!(z,CSC,x,1,2)
+  @test y ≈ z
+
   LinearAlgebra.fillstored!(CSR,3.33)
   LinearAlgebra.fillstored!(CSC,3.33)
   mul!(y,CSR,x)
