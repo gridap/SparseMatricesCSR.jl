@@ -142,6 +142,12 @@ count(S::SymSparseMatrixCSR) = count(i->true, S)
 
 function LinearAlgebra.fillstored!(a::SymSparseMatrixCSR,v)
   LinearAlgebra.fillstored!(a.uppertrian,v)
+  a
+end
+
+function LinearAlgebra.rmul!(a::SymSparseMatrixCSR,v::Number)
+  LinearAlgebra.rmul!(a.uppertrian,v)
+  a
 end
 
 function mul!(y::AbstractVector,A::SymSparseMatrixCSR,v::AbstractVector, α::Number, β::Number)

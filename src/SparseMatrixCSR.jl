@@ -122,6 +122,12 @@ _copy_and_increment(x) = copy(x) .+ 1
 
 function LinearAlgebra.fillstored!(a::SparseMatrixCSR,v)
   fill!(a.nzval,v)
+  a
+end
+
+function LinearAlgebra.rmul!(a::SparseMatrixCSR,v::Number)
+  rmul!(a.nzval,v)
+  a
 end
 
 function LinearAlgebra.lu(a::SparseMatrixCSR{0})
