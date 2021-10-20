@@ -78,11 +78,17 @@ function test_csr(Bi,Tv,Ti)
 
   @test CSR*x ≈ CSC*x
 
-  LinearAlgebra.fillstored!(CSR,3.33)
+  out = LinearAlgebra.fillstored!(CSR,3.33)
+  @test out === CSR
   LinearAlgebra.fillstored!(CSC,3.33)
   mul!(y,CSR,x)
   mul!(z,CSC,x)
   @test y ≈ z
+
+  _CSR = copy(CSR)
+  out = LinearAlgebra.rmul!(CSR,-1)
+  @test out === CSR
+  @test _CSR ≈ -1*CSR
 
 end
 
