@@ -25,10 +25,26 @@ function test_csr(Bi,Tv,Ti)
     @test copy(CSR) == CSC
   end
   CSR = sparsecsr(Val(Bi),I,J,V)
+  show(CSR)
   @test CSR == CSC
   @test copy(CSR) == CSC
   @test eltype(CSR) == Tv
   @test isa(CSR,SparseMatrixCSR{Bi,Tv,Ti})
+
+  for i=1:size(CSR,1)
+    for j=1:size(CSR,2)
+      if (i,j) in zip(I,J)
+         CSR[i,j] = eltype(V)(i+j)
+         @test CSR[i,j] ≈ eltype(V)(i+j)
+      else
+         try
+          CSR[i,j] = eltype(V)(i+j)
+         catch e
+          @test isa(e,ArgumentError)
+         end
+      end
+    end
+  end
 
   CSC = sparse(I,J,V,maxrows,maxcols)
   if Bi == 1
