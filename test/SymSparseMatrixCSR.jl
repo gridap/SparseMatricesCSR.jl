@@ -32,6 +32,21 @@ function test_csr(Bi,Tv,Ti)
   @test eltype(CSR) == Tv
   @test isa(CSR,SymSparseMatrixCSR{Bi,Tv,Ti})
 
+  for i=1:size(CSR,1)
+    for j=1:size(CSR,2)
+      if (i,j) in zip(I,J)
+         CSR[i,j] = eltype(V)(i+j)
+         @test CSR[i,j] ≈ eltype(V)(i+j)
+      else
+         try
+          CSR[i,j] = eltype(V)(i+j)
+         catch e
+          @test isa(e,ArgumentError)
+         end
+      end
+    end
+  end
+
   CSC = sparse(I,J,V,maxrows,maxcols)
   if Bi == 1
     CSR = symsparsecsr(I_up,J_up,V_up,maxrows,maxcols)

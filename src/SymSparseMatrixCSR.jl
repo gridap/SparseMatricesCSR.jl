@@ -52,6 +52,9 @@ IndexStyle(::Type{<:SymSparseMatrixCSR}) = IndexCartesian()
 function getindex(A::SymSparseMatrixCSR, x::Integer, y::Integer)
   getindex(A.uppertrian,min(x,y),max(x,y))
 end
+function setindex!(A::SymSparseMatrixCSR, v, x::Integer, y::Integer)
+  setindex!(A.uppertrian,v,min(x,y),max(x,y))
+end
 
 getrowptr(S::SymSparseMatrixCSR) = getrowptr(S.uppertrian)
 getnzval(S::SymSparseMatrixCSR) = getnzval(S.uppertrian)

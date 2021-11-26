@@ -166,6 +166,26 @@ function getindex(A::SparseMatrixCSR{Bi,T}, i0::Integer, i1::Integer) where {Bi,
   k = searchsortedfirst(colvals(A), i1o, r1, r2, Base.Order.Forward)
   ((k > r2) || (colvals(A)[k] != i1o)) ? zero(T) : nonzeros(A)[k]
 end
+function setindex!(A::SparseMatrixCSR{Bi,Tv,Ti}, _v, _i0::Integer, _i1::Integer) where {Bi,Tv,Ti}
+  errmsg = "Trying to set an entry outside sparsity pattern"
+  v  = convert(Tv,_v)
+  i0 = convert(Ti,_i0)
+  i1 = convert(Ti,_i1)
+  if !(1 <= i0 <= size(A, 1) && 1 <= i1 <= size(A, 2)); throw(BoundsError()); end
+  o = getoffset(A)
+  r1 = Int(getrowptr(A)[i0]+o)
+  r2 = Int(getrowptr(A)[i0+1]-Bi)
+  (r1 > r2) && throw(ArgumentError(errmsg))
+  i1o = i1-o
+  k = searchsortedfirst(colvals(A), i1o, r1, r2, Base.Order.Forward)
+  if ((k > r2) || (colvals(A)[k] != i1o))
+    throw(ArgumentError(errmsg))
+  end
+  A.nzval[k]=v
+end
+
+
+
 
 getrowptr(S::SparseMatrixCSR) = S.rowptr
 getnzval(S::SparseMatrixCSR) = S.nzval
