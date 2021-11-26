@@ -1,4 +1,4 @@
-#module SparseMatrixCSRTests
+module SparseMatrixCSRTests
 
 using Test
 using SparseMatricesCSR
@@ -139,4 +139,4 @@ V = [4.0,1.0,-1.0,4.0,1.0,-1.0,4.0]
 test_lu(0,I,J,V)
 test_lu(1,I,J,V)
 
-#end # module
+end # module
