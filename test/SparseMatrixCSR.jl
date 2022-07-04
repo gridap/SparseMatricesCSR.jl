@@ -110,6 +110,13 @@ function test_csr(Bi,Tv,Ti)
   @test out === CSR
   @test _CSR ≈ -1*CSR
 
+  # Test overlong buffers
+  let A = sparsecsr([1, 2, 3], [1, 2, 3], [4., 5, 6])
+      push!(A.nzval, 4.0)
+      push!(A.rowptr, -1)
+      @test nnz(A) == length(SparseArrays.nzvalview(A)) == 3
+      @test SparseArrays.nzvalview(A) == [4., 5, 6]
+  end
 end
 
 function test_lu(Bi,I,J,V)
