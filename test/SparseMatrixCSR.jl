@@ -133,10 +133,14 @@ for Bi in (0,1)
   end
 end
 
-I = [1,1,2,2,2,3,3]
-J = [1,2,1,2,3,2,3]
-V = [4.0,1.0,-1.0,4.0,1.0,-1.0,4.0]
-test_lu(0,I,J,V)
-test_lu(1,I,J,V)
+if Base.USE_GPL_LIBS  # `lu!` requires `SuiteSparse.UMFPACK`
+    I = [1,1,2,2,2,3,3]
+    J = [1,2,1,2,3,2,3]
+    V = [4.0,1.0,-1.0,4.0,1.0,-1.0,4.0]
+    test_lu(0,I,J,V)
+    test_lu(1,I,J,V)
+else
+    @warn "Tests run without GPL libraries."
+end
 
 end # module
