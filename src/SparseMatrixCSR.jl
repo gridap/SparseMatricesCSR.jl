@@ -140,6 +140,8 @@ function LinearAlgebra.lu(a::SparseMatrixCSR{1})
   Transpose(lu(SparseMatrixCSC(a.m,a.n,a.rowptr,a.colval,a.nzval)))
 end
 
+if Base.USE_GPL_LIBS
+
 function LinearAlgebra.lu!(
     translu::Transpose{T,<:SuiteSparse.UMFPACK.UmfpackLU{T}},
     a::SparseMatrixCSR{1}) where {T}
@@ -153,6 +155,8 @@ function LinearAlgebra.lu!(
   colval = _copy_and_increment(a.colval)
   Transpose(lu!(translu.parent,SparseMatrixCSC(a.m,a.n,rowptr,colval,a.nzval)))
 end
+
+end # Base.USE_GPL_LIBS
 
 size(S::SparseMatrixCSR) = (S.m, S.n)
 IndexStyle(::Type{<:SparseMatrixCSR}) = IndexCartesian()
