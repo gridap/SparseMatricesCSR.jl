@@ -339,8 +339,8 @@ function show(io::IOContext, S::SparseMatrixCSR{Bi}) where{Bi}
   nnz(S) == 0 && return show(io, MIME("text/plain"), S)
   ioc = IOContext(io, :compact => true)
 
-  function _format_line(r, col, padr, padc,o)
-    print(ioc, "\n  [", rpad(col+o, padr), ", ", lpad(S.colval[r]+o, padc), "]  =  ")
+  function _format_line(r, col, padr, padc)
+    print(ioc, "\n  [", rpad(col, padr), ", ", lpad(S.colval[r], padc), "]  =  ")
     if isassigned(S.nzval, Int(r))
       show(ioc, S.nzval[r])
     else
