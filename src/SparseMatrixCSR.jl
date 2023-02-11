@@ -142,8 +142,8 @@ end
 
 if Base.USE_GPL_LIBS
 
-const TransposeFact = isdefined(LinearAlgebra, :TransposeFact) ?
-  LinearAlgebra.TransposeFact :
+const TransposeFact = isdefined(LinearAlgebra, :TransposeFactorization) ?
+  LinearAlgebra.TransposeFactorization :
   Transpose
 
 function LinearAlgebra.lu!(
