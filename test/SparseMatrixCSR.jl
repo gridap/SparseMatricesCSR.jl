@@ -110,6 +110,9 @@ function test_csr(Bi,Tv,Ti)
   @test out === CSR
   @test _CSR ≈ -1*CSR
 
+  # test constructors
+  @test CSR == SparseMatrixCSR(CSC)
+  @test CSR == SparseMatrixCSR(Matrix(CSC))
 end
 
 function test_lu(Bi,I,J,V)
