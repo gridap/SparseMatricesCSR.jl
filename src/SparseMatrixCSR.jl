@@ -56,6 +56,20 @@ function SparseMatrixCSR(a::Transpose{Tv,<:SparseMatrixCSC} where Tv)
 end
 
 """
+    SparseMatrixCSR(a::SparseMatrixCSC}
+
+Build a 1-based `SparseMatrixCSR` from a `SparseMatrixCSC`. 
+"""
+SparseMatrixCSR(a::SparseMatrixCSC) = SparseMatrixCSR(transpose(sparse(transpose(a))))
+
+"""
+    SparseMatrixCSR(a::AbstractMatrix}
+
+Build a 1-based `SparseMatrixCSR` from an `AbstractMatrix`. 
+"""
+SparseMatrixCSR(a::AbstractMatrix) = SparseMatrixCSR(sparse(a))
+
+"""
     SparseMatrixCSR{Bi}(a::Transpose{Tv,<:SparseMatrixCSC} where Tv) where Bi
 
 Build a `Bi`-based `SparseMatrixCSR` from the lazy transpose of a `SparseMatrixCSC`.

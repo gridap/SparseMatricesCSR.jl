@@ -105,6 +105,10 @@ function test_csr(Bi,Tv,Ti)
   mul!(z,CSC,x)
   @test y ≈ z
 
+  # test constructors
+  @test CSR == SparseMatrixCSR(CSC)
+  @test CSR == SparseMatrixCSR(Matrix(CSC))
+
   _CSR = copy(CSR)
   out = LinearAlgebra.rmul!(CSR,-1)
   @test out === CSR
