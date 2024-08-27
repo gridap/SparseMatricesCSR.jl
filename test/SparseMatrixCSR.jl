@@ -25,7 +25,8 @@ function test_csr(Bi,Tv,Ti)
     @test copy(CSR) == CSC
   end
   CSR = sparsecsr(Val(Bi),I,J,V)
-  show(CSR)
+  show(IOContext(stdout, :limit=>true, :displaysize=>(10,10)), CSR)
+  show(IOContext(stdout, :limit=>false), CSR)
   @test CSR == CSC
   @test copy(CSR) == CSC
   @test eltype(CSR) == Tv
