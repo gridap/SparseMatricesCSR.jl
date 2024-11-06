@@ -91,7 +91,7 @@ SparseMatrixCSR{1}(a::Transpose{Tv,<:SparseMatrixCSC} where Tv) = SparseMatrixCS
 
 Create  a `SparseMatrixCSR` with `Bi`-based indexing (1 by default)
 from the same `args...` as one constructs a `SparseMatrixCSC`
-with the [`sparse`](@ref) function.
+with the [`SparseArrays.sparse`](@extref) function.
 """
 sparsecsr(I,J,V) = SparseMatrixCSR(transpose(sparse(J,I,V,dimlub(J),dimlub(I))))
 sparsecsr(I,J,V,m,n) = SparseMatrixCSR(transpose(sparse(J,I,V,n,m)))
