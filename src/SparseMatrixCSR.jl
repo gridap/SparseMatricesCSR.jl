@@ -241,7 +241,7 @@ issparse(S::SparseMatrixCSR) = true
 
 Returns the number of stored (filled) elements in a sparse array.
 """
-nnz(S::SparseMatrixCSR) = length(nonzeros(S))
+nnz(S::SparseMatrixCSR) = Int(getrowptr(S)[size(S, 1) + 1]) - 1
 
 """
     nonzeros(S::SparseMatrixCSR)
@@ -252,6 +252,8 @@ The returned vector points directly to the internal nonzero storage of S,
 and any modifications to the returned vector will mutate S as well.
 """
 nonzeros(S::SparseMatrixCSR) = S.nzval
+
+nzvalview(S::SparseMatrixCSR) = view(nonzeros(S), 1:nnz(S))
 
 """
     colvals(S::SparseMatrixCSR{Bi}) where {Bi}
@@ -307,8 +309,8 @@ end
 Count the number of elements in `nonzeros(S)` for which predicate `pred` returns `true`.
 If  `pred` not given, it counts the number of `true` values.
 """
-count(pred, S::SparseMatrixCSR) = count(pred, nonzeros(S))
-count(S::SparseMatrixCSR) = count(i->true, nonzeros(S))
+count(pred, S::SparseMatrixCSR) = count(pred, nzvalview(S))
+count(S::SparseMatrixCSR) = count(i->true, nzvalview(S))
 
 function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector, α::Number, β::Number)
   A.n == size(v, 1) || throw(DimensionMismatch())
