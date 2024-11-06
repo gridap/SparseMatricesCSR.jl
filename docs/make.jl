@@ -1,4 +1,9 @@
-using Documenter, SparseMatricesCSR
+using Documenter, DocumenterInterLinks
+using SparseMatricesCSR
+
+links = InterLinks(
+    "SparseArrays" => "https://docs.julialang.org/en/v1/"
+)
 
 makedocs(;
     modules=[SparseMatricesCSR],
@@ -9,6 +14,7 @@ makedocs(;
     repo="https://github.com/gridap/SparseMatricesCSR.jl/blob/{commit}{path}#L{line}",
     sitename="SparseMatricesCSR.jl",
     authors="Víctor Sande <vsande@cimne.upc.edu> and Francesc Verdugo <fverdugo@cimne.upc.edu>",
+    plugins=[links],
 )
 
 deploydocs(;

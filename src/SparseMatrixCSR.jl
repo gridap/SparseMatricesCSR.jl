@@ -56,6 +56,20 @@ function SparseMatrixCSR(a::Transpose{Tv,<:SparseMatrixCSC} where Tv)
 end
 
 """
+    SparseMatrixCSR(a::SparseMatrixCSC}
+
+Build a 1-based `SparseMatrixCSR` from a `SparseMatrixCSC`. 
+"""
+SparseMatrixCSR(a::SparseMatrixCSC) = SparseMatrixCSR(transpose(sparse(transpose(a))))
+
+"""
+    SparseMatrixCSR(a::AbstractMatrix}
+
+Build a 1-based `SparseMatrixCSR` from an `AbstractMatrix`. 
+"""
+SparseMatrixCSR(a::AbstractMatrix) = SparseMatrixCSR(sparse(a))
+
+"""
     SparseMatrixCSR{Bi}(a::Transpose{Tv,<:SparseMatrixCSC} where Tv) where Bi
 
 Build a `Bi`-based `SparseMatrixCSR` from the lazy transpose of a `SparseMatrixCSC`.
@@ -77,7 +91,7 @@ SparseMatrixCSR{1}(a::Transpose{Tv,<:SparseMatrixCSC} where Tv) = SparseMatrixCS
 
 Create  a `SparseMatrixCSR` with `Bi`-based indexing (1 by default)
 from the same `args...` as one constructs a `SparseMatrixCSC`
-with the [`sparse`](@ref) function.
+with the [`SparseArrays.sparse`](@extref) function.
 """
 sparsecsr(I,J,V) = SparseMatrixCSR(transpose(sparse(J,I,V,dimlub(J),dimlub(I))))
 sparsecsr(I,J,V,m,n) = SparseMatrixCSR(transpose(sparse(J,I,V,n,m)))
@@ -133,27 +147,31 @@ end
 function LinearAlgebra.lu(a::SparseMatrixCSR{0})
   rowptr = _copy_and_increment(a.rowptr)
   colval = _copy_and_increment(a.colval)
-  Transpose(lu(SparseMatrixCSC(a.m,a.n,rowptr,colval,a.nzval)))
+  transpose(lu(SparseMatrixCSC(a.m,a.n,rowptr,colval,a.nzval)))
 end
 
 function LinearAlgebra.lu(a::SparseMatrixCSR{1})
-  Transpose(lu(SparseMatrixCSC(a.m,a.n,a.rowptr,a.colval,a.nzval)))
+  transpose(lu(SparseMatrixCSC(a.m,a.n,a.rowptr,a.colval,a.nzval)))
 end
 
 if Base.USE_GPL_LIBS
 
+const TransposeFact = isdefined(LinearAlgebra, :TransposeFactorization) ?
+  LinearAlgebra.TransposeFactorization :
+  Transpose
+
 function LinearAlgebra.lu!(
-    translu::Transpose{T,<:SuiteSparse.UMFPACK.UmfpackLU{T}},
+    translu::TransposeFact{T,<:SuiteSparse.UMFPACK.UmfpackLU{T}},
     a::SparseMatrixCSR{1}) where {T}
-  Transpose(lu!(translu.parent,SparseMatrixCSC(a.m,a.n,a.rowptr,a.colval,a.nzval)))
+  transpose(lu!(translu.parent,SparseMatrixCSC(a.m,a.n,a.rowptr,a.colval,a.nzval)))
 end
 
 function LinearAlgebra.lu!(
-  translu::Transpose{T,<:SuiteSparse.UMFPACK.UmfpackLU{T}},
+  translu::TransposeFact{T,<:SuiteSparse.UMFPACK.UmfpackLU{T}},
   a::SparseMatrixCSR{0}) where {T}
   rowptr = _copy_and_increment(a.rowptr)
   colval = _copy_and_increment(a.colval)
-  Transpose(lu!(translu.parent,SparseMatrixCSC(a.m,a.n,rowptr,colval,a.nzval)))
+  transpose(lu!(translu.parent,SparseMatrixCSC(a.m,a.n,rowptr,colval,a.nzval)))
 end
 
 end # Base.USE_GPL_LIBS
@@ -223,7 +241,7 @@ issparse(S::SparseMatrixCSR) = true
 
 Returns the number of stored (filled) elements in a sparse array.
 """
-nnz(S::SparseMatrixCSR) = length(nonzeros(S))
+nnz(S::SparseMatrixCSR{Bi}) where Bi = Int(S.rowptr[size(S, 1) + 1] - Bi)
 
 """
     nonzeros(S::SparseMatrixCSR)
@@ -234,6 +252,8 @@ The returned vector points directly to the internal nonzero storage of S,
 and any modifications to the returned vector will mutate S as well.
 """
 nonzeros(S::SparseMatrixCSR) = S.nzval
+
+nzvalview(S::SparseMatrixCSR) = view(nonzeros(S), 1:nnz(S))
 
 """
     colvals(S::SparseMatrixCSR{Bi}) where {Bi}
@@ -289,8 +309,8 @@ end
 Count the number of elements in `nonzeros(S)` for which predicate `pred` returns `true`.
 If  `pred` not given, it counts the number of `true` values.
 """
-count(pred, S::SparseMatrixCSR) = count(pred, nonzeros(S))
-count(S::SparseMatrixCSR) = count(i->true, nonzeros(S))
+count(pred, S::SparseMatrixCSR) = count(pred, nzvalview(S))
+count(S::SparseMatrixCSR) = count(i->true, nzvalview(S))
 
 function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector, α::Number, β::Number)
   A.n == size(v, 1) || throw(DimensionMismatch())

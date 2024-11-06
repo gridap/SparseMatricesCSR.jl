@@ -6,7 +6,7 @@ using SuiteSparse
 
 import Base: convert, copy, size, getindex, setindex!, show, count, *, IndexStyle
 import LinearAlgebra: mul!, lu, lu!
-import SparseArrays: nnz, getnzval, nonzeros, nzrange
+import SparseArrays: nnz, getnzval, nonzeros, nzvalview, nzrange
 import SparseArrays: findnz, rowvals, getnzval, issparse
 
 export SparseMatrixCSR
