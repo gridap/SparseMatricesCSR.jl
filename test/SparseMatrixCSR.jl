@@ -79,7 +79,7 @@ function test_csr(Bi,Tv,Ti)
   @test getBi(CSR) == Bi
   @test getoffset(CSR) == 1-Bi
   @test nnz(CSR) == nnz(CSC)
-  @test length(nonzeros(CSR)) == nnz(CSR)
+  @test length(SparseArrays.nzvalview(CSR)) == nnz(CSR)
   @test nonzeros(CSR) === CSR.nzval
   @test colvals(CSR) === CSR.colval
   i,j,v = findnz(CSR)
@@ -117,10 +117,10 @@ function test_csr(Bi,Tv,Ti)
 
   # Test overlong buffers
   let A = sparsecsr([1, 2, 3], [1, 2, 3], [4., 5, 6])
-      push!(A.nzval, 4.0)
-      push!(A.rowptr, -1)
-      @test nnz(A) == length(SparseArrays.nzvalview(A)) == 3
-      @test SparseArrays.nzvalview(A) == [4., 5, 6]
+    push!(A.nzval, 4.0)
+    push!(A.rowptr, -1)
+    @test nnz(A) == length(SparseArrays.nzvalview(A)) == 3
+    @test SparseArrays.nzvalview(A) == [4., 5, 6]
   end
 end
 
@@ -146,13 +146,13 @@ for Bi in (0,1)
 end
 
 if Base.USE_GPL_LIBS  # `lu!` requires `SuiteSparse.UMFPACK`
-    I = [1,1,2,2,2,3,3]
-    J = [1,2,1,2,3,2,3]
-    V = [4.0,1.0,-1.0,4.0,1.0,-1.0,4.0]
-    test_lu(0,I,J,V)
-    test_lu(1,I,J,V)
+  I = [1,1,2,2,2,3,3]
+  J = [1,2,1,2,3,2,3]
+  V = [4.0,1.0,-1.0,4.0,1.0,-1.0,4.0]
+  test_lu(0,I,J,V)
+  test_lu(1,I,J,V)
 else
-    @warn "Tests run without GPL libraries."
+  @warn "Tests run without GPL libraries."
 end
 
 end # module

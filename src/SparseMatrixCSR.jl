@@ -241,7 +241,7 @@ issparse(S::SparseMatrixCSR) = true
 
 Returns the number of stored (filled) elements in a sparse array.
 """
-nnz(S::SparseMatrixCSR) = Int(getrowptr(S)[size(S, 1) + 1]) - 1
+nnz(S::SparseMatrixCSR{Bi}) where Bi = Int(S.rowptr[size(S, 1) + 1] - Bi)
 
 """
     nonzeros(S::SparseMatrixCSR)
