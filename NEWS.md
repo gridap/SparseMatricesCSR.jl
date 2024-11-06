@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.6.8] - 2024.08.29
 
+### Added
+
+- Added `SparseMatrixCSC` and `AbstractMatrix` constructors.
+
 ### Fixed
 
-- Fixed show method for SparseMatrixCSR
+- Fixed show method for SparseMatrixCSR.
+- Fixes related to `TransposeFactorization` (see https://github.com/JuliaLang/julia/pull/46874).
 
 ## [0.6.6] - 2021.11.26
 
