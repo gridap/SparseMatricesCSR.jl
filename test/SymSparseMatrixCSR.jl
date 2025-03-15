@@ -23,6 +23,8 @@ function test_csr(Bi,Tv,Ti)
     @test CSR == CSC
     CSR = symsparsecsr(copy(I),copy(J),copy(V);symmetrize=true)
     @test CSR == CSC
+    CSR = copy(symsparsecsr(copy(I),copy(J),copy(V);symmetrize=true))
+    @test CSR == CSC
   end
 
   CSR = symsparsecsr(Val(Bi),I_up,J_up,V_up)

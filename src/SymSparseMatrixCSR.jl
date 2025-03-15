@@ -206,3 +206,7 @@ function Base.convert(
   utrian = convert(SparseMatrixCSR{Bi,Tv,Ti},a.uppertrian)
   SymSparseMatrixCSR(utrian)
 end
+
+function Base.copy(a::SymSparseMatrixCSR{Bi,T,Ti}) where {Bi,T,Ti}
+   SymSparseMatrixCSR{Bi,T,Ti}(copy(a.uppertrian))
+end
