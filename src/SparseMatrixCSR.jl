@@ -93,9 +93,11 @@ Create  a `SparseMatrixCSR` with `Bi`-based indexing (1 by default)
 from the same `args...` as one constructs a `SparseMatrixCSC`
 with the [`SparseArrays.sparse`](@extref) function.
 """
+sparsecsr(A::AbstractMatrix{T}) where T = convert(SparseMatrixCSR{1,T,Int64}, A)
 sparsecsr(I,J,V) = SparseMatrixCSR(transpose(sparse(J,I,V,dimlub(J),dimlub(I))))
 sparsecsr(I,J,V,m,n) = SparseMatrixCSR(transpose(sparse(J,I,V,n,m)))
 sparsecsr(I,J,V,m,n,combine) = SparseMatrixCSR(transpose(sparse(J,I,V,n,m,combine)))
+sparsecsr(::Val{Bi},A::AbstractMatrix{T}) where {Bi,T} = convert(SparseMatrixCSR{Bi,T,Int64}, A)
 sparsecsr(::Val{Bi},I,J,V) where Bi = SparseMatrixCSR{Bi}(transpose(sparse(J,I,V,dimlub(J),dimlub(I))))
 sparsecsr(::Val{Bi},I,J,V,m,n) where Bi = SparseMatrixCSR{Bi}(transpose(sparse(J,I,V,n,m)))
 sparsecsr(::Val{Bi},I,J,V,m,n,combine) where Bi = SparseMatrixCSR{Bi}(transpose(sparse(J,I,V,n,m,combine)))
