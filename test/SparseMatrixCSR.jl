@@ -47,6 +47,18 @@ function test_csr(Bi,Tv,Ti)
     end
   end
 
+  if Ti == Int64
+      dense = rand(Tv, maxrows,maxcols)
+      CSR = sparsecsr(Val(Bi), dense)
+      @test isa(CSR,SparseMatrixCSR{Bi,Tv,Ti})
+      @test CSR == dense
+      if Bi == 1
+          CSR = sparsecsr(dense)
+          @test CSR == dense
+          @test isa(CSR,SparseMatrixCSR{Bi,Tv,Ti})
+      end
+  end
+
   CSC = sparse(I,J,V,maxrows,maxcols)
   if Bi == 1
     CSR = sparsecsr(I,J,V,maxrows,maxcols)
