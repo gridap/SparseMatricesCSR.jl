@@ -72,7 +72,7 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v2
-      - uses: julia-actions/julia-downgrade-compat@v1
+      - uses: julia-actions/julia-downgrade-compat@v2
         with: # As per documentation, we exclude packages within the Julia standard library
           skip: LinearAlgebra,SparseArrays
       - uses: julia-actions/julia-buildpkg@v1
