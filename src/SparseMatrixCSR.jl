@@ -37,7 +37,7 @@ struct SparseMatrixCSR{Bi,Tv,Ti} <: AbstractSparseMatrix{Tv,Ti}
       throw(ArgumentError("$str must be $r, got $k"))
     m < 0 && throwsz("m",">=0",m)
     n < 0 && throwsz("n",">=0", n)
-    length(rowptr) != m+1 && throwsz("lengh(rowptr)",m+1,length(rowptr))
+    length(rowptr) != m+1 && throwsz("length(rowptr)",m+1,length(rowptr))
     rowptr[end]-Bi != length(nzval) && throwsz("rowptr[end]-Bi",rowptr[m+1]-Bi, length(nzval))
     new{Bi,Tv,Ti}(Int(m), Int(n), rowptr, colval, nzval)
   end
@@ -58,14 +58,14 @@ end
 """
     SparseMatrixCSR(a::SparseMatrixCSC}
 
-Build a 1-based `SparseMatrixCSR` from a `SparseMatrixCSC`. 
+Build a 1-based `SparseMatrixCSR` from a `SparseMatrixCSC`.
 """
 SparseMatrixCSR(a::SparseMatrixCSC) = SparseMatrixCSR(transpose(sparse(transpose(a))))
 
 """
     SparseMatrixCSR(a::AbstractMatrix}
 
-Build a 1-based `SparseMatrixCSR` from an `AbstractMatrix`. 
+Build a 1-based `SparseMatrixCSR` from an `AbstractMatrix`.
 """
 SparseMatrixCSR(a::AbstractMatrix) = SparseMatrixCSR(sparse(a))
 
@@ -139,6 +139,11 @@ _copy_and_increment(x) = copy(x) .+ 1
 function LinearAlgebra.fillstored!(a::SparseMatrixCSR,v)
   fill!(a.nzval,v)
   a
+end
+
+function Base.fill!(a::SparseMatrixCSR,v)
+  iszero(v) && return LinearAlgebra.fillstored!(a,v)
+  invoke(Base.fill!,Tuple{AbstractMatrix,typeof(v)},a,v)
 end
 
 function LinearAlgebra.rmul!(a::SparseMatrixCSR,v::Number)
