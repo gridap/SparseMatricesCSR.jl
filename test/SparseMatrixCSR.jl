@@ -106,6 +106,7 @@ function test_csr(Bi,Tv,Ti)
   mul!(z,CSC,x)
   @test y ≈ z
   @test CSR*x ≈ CSC*x
+  @test CSR'*y ≈ CSC'*z
 
   mul!(y,CSR,x,1,2)
   mul!(z,CSC,x,1,2)
