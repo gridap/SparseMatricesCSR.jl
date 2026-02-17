@@ -2,7 +2,7 @@ using Documenter, DocumenterInterLinks
 using SparseMatricesCSR
 
 links = InterLinks(
-    "SparseArrays" => "https://docs.julialang.org/en/v1/stdlib/SparseArrays/"
+    "SparseArrays" => "https://docs.julialang.org/en/v1/"
 )
 
 makedocs(;
