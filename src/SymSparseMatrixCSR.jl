@@ -21,7 +21,7 @@ end
 
 Create  a `SymSparseMatrixCSR` with `Bi`-based indexing (1 by default)
 from the same `args...` as one constructs a `SparseMatrixCSC`
-with the [`sparse`](@ref) function. If `symmetrize == false` (the default)
+with the [`sparse`](@extref) function. If `symmetrize == false` (the default)
 the given arguments should only describe the upper triangle
 of the matrix (including non zero diagonal values). If `symmetrize == true`
 a non symmetric input is accepted and it will be symmetrized in-place
