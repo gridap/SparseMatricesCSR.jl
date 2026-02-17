@@ -351,6 +351,23 @@ end
 
 *(A::SparseMatrixCSR, v::Vector) = (y = similar(v,size(A,1));mul!(y,A,v))
 
+function mul!(y::AbstractVector,A::Adjoint{T, <:SparseMatrixCSR},v::AbstractVector) where T
+  P = A.parent
+  P.n == size(y, 1) || throw(DimensionMismatch())
+  P.m == size(v, 1) || throw(DimensionMismatch())
+  fill!(y,zero(eltype(y)))
+  o = getoffset(P)
+  for row = 1:size(P, 1)
+    for nz in nzrange(P,row)
+      col = P.colval[nz]+o
+      y[col] += P.nzval[nz]*v[row]
+    end
+  end
+  return y
+end
+
+*(A::Adjoint{T, <:SparseMatrixCSR}, v::AbstractVector) where T = (y = similar(v, promote_type(eltype(v),T), size(A,1)); mul!(y, A, v))
+
 function show(io::IO, ::MIME"text/plain", S::SparseMatrixCSR)
   xnnz = nnz(S)
   print(io, S.m, "×", S.n, " ", typeof(S), " with ", xnnz, " stored ",
