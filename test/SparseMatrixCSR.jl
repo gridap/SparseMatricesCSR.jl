@@ -118,6 +118,10 @@ function test_csr(Bi,Tv,Ti)
   mul!(z,CSC,x)
   @test y ≈ z
 
+  @test_throws ArgumentError fill!(CSR2,3.33)
+  fill!(CSR2, 0)
+  @test all(iszero, CSR2)
+
   # test constructors
   @test CSR == SparseMatrixCSR(CSC)
   @test CSR == SparseMatrixCSR(Matrix(CSC))
