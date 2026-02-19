@@ -319,11 +319,11 @@ If  `pred` not given, it counts the number of `true` values.
 count(pred, S::SparseMatrixCSR) = count(pred, nzvalview(S))
 count(S::SparseMatrixCSR) = count(i->true, nzvalview(S))
 
-function mul!(y::AbstractVector,A::Adjoint{T, <:SparseMatrixCSR},v::AbstractVector) where T
+function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector, α::Number, β::Number)
   if Threads.nthreads() > 1
-    tmul!(y, A, v)
+    tmul!(y, A, v, α, β)
   else
-    smul!(y, A, v)
+    smul!(y, A, v, α, β)
   end
 end
 
@@ -359,7 +359,7 @@ function tmul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector, α::Numbe
   return y
 end
 
-function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector) where T
+function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector)
   if Threads.nthreads() > 1
     tmul!(y, A, v)
   else
@@ -397,7 +397,7 @@ end
 
 *(A::SparseMatrixCSR, v::Vector) = (y = similar(v,size(A,1));mul!(y,A,v))
 
-function mul!(y::AbstractVector,A::Adjoint{T, <:SparseMatrixCSR},v::AbstractVector) where T
+function mul!(y::AbstractVector,A::Adjoint{<:Any, <:SparseMatrixCSR},v::AbstractVector)
   if Threads.nthreads() > 1
     tmul!(y, A, v)
   else
@@ -405,7 +405,7 @@ function mul!(y::AbstractVector,A::Adjoint{T, <:SparseMatrixCSR},v::AbstractVect
   end
 end
 
-function smul!(y::AbstractVector,A::Adjoint{T, <:SparseMatrixCSR},v::AbstractVector) where T
+function smul!(y::AbstractVector,A::Adjoint{<:Any, <:SparseMatrixCSR},v::AbstractVector)
   P = A.parent
   P.n == size(y, 1) || throw(DimensionMismatch())
   P.m == size(v, 1) || throw(DimensionMismatch())
@@ -420,7 +420,7 @@ function smul!(y::AbstractVector,A::Adjoint{T, <:SparseMatrixCSR},v::AbstractVec
   return y
 end
 
-function tmul!(y::AbstractVector,A::Adjoint{T, <:SparseMatrixCSR},v::AbstractVector) where T
+function tmul!(y::AbstractVector,A::Adjoint{<:Any, <:SparseMatrixCSR},v::AbstractVector)
   P = A.parent
   P.n == size(y, 1) || throw(DimensionMismatch())
   P.m == size(v, 1) || throw(DimensionMismatch())
