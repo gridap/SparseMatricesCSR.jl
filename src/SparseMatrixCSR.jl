@@ -320,13 +320,37 @@ count(pred, S::SparseMatrixCSR) = count(pred, nzvalview(S))
 count(S::SparseMatrixCSR) = count(i->true, nzvalview(S))
 
 function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector, α::Number, β::Number)
+  if Threads.nthreads() > 1
+    tmul!(y, A, v, α, β)
+  else
+    smul!(y, A, v, α, β)
+  end
+end
+
+function smul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector, α::Number, β::Number)
   A.n == size(v, 1) || throw(DimensionMismatch())
   A.m == size(y, 1) || throw(DimensionMismatch())
   if β != 1
     β != 0 ? rmul!(y, β) : fill!(y, zero(eltype(y)))
   end
   o = getoffset(A)
-  for row = 1:size(y, 1)
+  @batch for row = 1:size(y, 1)
+    @inbounds for nz in nzrange(A,row)
+      col = A.colval[nz]+o
+      y[row] += A.nzval[nz]*v[col]*α
+    end
+  end
+  return y
+end
+
+function tmul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector, α::Number, β::Number)
+  A.n == size(v, 1) || throw(DimensionMismatch())
+  A.m == size(y, 1) || throw(DimensionMismatch())
+  if β != 1
+    β != 0 ? rmul!(y, β) : fill!(y, zero(eltype(y)))
+  end
+  o = getoffset(A)
+  @batch for row = 1:size(y, 1)
     @inbounds for nz in nzrange(A,row)
       col = A.colval[nz]+o
       y[row] += A.nzval[nz]*v[col]*α
@@ -336,6 +360,14 @@ function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector, α::Number
 end
 
 function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector)
+  if Threads.nthreads() > 1
+    tmul!(y, A, v)
+  else
+    smul!(y, A, v)
+  end
+end
+
+function smul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector)
   A.n == size(v, 1) || throw(DimensionMismatch())
   A.m == size(y, 1) || throw(DimensionMismatch())
   fill!(y, zero(eltype(y)))
@@ -349,15 +381,52 @@ function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector)
   return y
 end
 
+function tmul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector)
+  A.n == size(v, 1) || throw(DimensionMismatch())
+  A.m == size(y, 1) || throw(DimensionMismatch())
+  fill!(y, zero(eltype(y)))
+  o = getoffset(A)
+  @batch for row = 1:size(y, 1)
+    @inbounds for nz in nzrange(A,row)
+      col = A.colval[nz]+o
+      y[row] += A.nzval[nz]*v[col]
+    end
+  end
+  return y
+end
+
 *(A::SparseMatrixCSR, v::Vector) = (y = similar(v,size(A,1));mul!(y,A,v))
 
-function mul!(y::AbstractVector,A::Adjoint{T, <:SparseMatrixCSR},v::AbstractVector) where T
+function mul!(y::AbstractVector,A::Adjoint{<:Any, <:SparseMatrixCSR},v::AbstractVector)
+  if Threads.nthreads() > 1
+    tmul!(y, A, v)
+  else
+    smul!(y, A, v)
+  end
+end
+
+function smul!(y::AbstractVector,A::Adjoint{<:Any, <:SparseMatrixCSR},v::AbstractVector)
   P = A.parent
   P.n == size(y, 1) || throw(DimensionMismatch())
   P.m == size(v, 1) || throw(DimensionMismatch())
   fill!(y,zero(eltype(y)))
   o = getoffset(P)
   for row = 1:size(P, 1)
+    for nz in nzrange(P,row)
+      col = P.colval[nz]+o
+      y[col] += P.nzval[nz]*v[row]
+    end
+  end
+  return y
+end
+
+function tmul!(y::AbstractVector,A::Adjoint{<:Any, <:SparseMatrixCSR},v::AbstractVector)
+  P = A.parent
+  P.n == size(y, 1) || throw(DimensionMismatch())
+  P.m == size(v, 1) || throw(DimensionMismatch())
+  fill!(y,zero(eltype(y)))
+  o = getoffset(P)
+  @batch for row = 1:size(P, 1)
     for nz in nzrange(P,row)
       col = P.colval[nz]+o
       y[col] += P.nzval[nz]*v[row]
