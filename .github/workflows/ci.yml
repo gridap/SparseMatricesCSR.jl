@@ -8,9 +8,9 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.8'
-          - '1.9'
           - '1.10'
+          - '1.11'
+          - 'latest'
         os:
           - ubuntu-latest
           - windows-latest
@@ -41,6 +41,8 @@ jobs:
       matrix:
         version:
           - '1.10'
+          - '1.11'
+          - 'latest'
         os:
           - ubuntu-latest
         arch:
