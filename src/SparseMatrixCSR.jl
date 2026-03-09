@@ -429,7 +429,7 @@ function tmul!(y::AbstractVector,A::Adjoint{<:Any, <:SparseMatrixCSR},v::Abstrac
   @batch for row = 1:size(P, 1)
     for nz in nzrange(P,row)
       col = P.colval[nz]+o
-      y[col] += P.nzval[nz]*v[row]
+      @atomic y[col] += P.nzval[nz]*v[row]
     end
   end
   return y
