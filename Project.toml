@@ -1,7 +1,7 @@
 name = "SparseMatricesCSR"
 uuid = "a0a7dd2c-ebf4-11e9-1f05-cf50bc540ca1"
 authors = ["Víctor Sande <vsande@cimne.upc.edu>", "Francesc Verdugo <fverdugo@cimne.upc.edu>"]
-version = "0.6.10"
+version = "0.6.11"
 
 [deps]
 Atomix = "a9b6321e-bd34-4604-b9c9-b65b8de01458"
