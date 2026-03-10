@@ -14,6 +14,9 @@ export SymSparseMatrixCSR
 export sparsecsr, symsparsecsr
 export colvals, getBi, getoffset
 
+import Polyester: @batch
+import Atomix: @atomic
+
 include("SparseMatrixCSR.jl")
 
 include("SymSparseMatrixCSR.jl")
