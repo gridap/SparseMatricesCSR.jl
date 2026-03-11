@@ -9,8 +9,8 @@ The standard way of constructing `SparseMatrixCSR` is through the
 
 # Properties
 
-- `m::Int` Number of columns
-- `n::Int` Number of rows
+- `m::Int` Number of rows
+- `n::Int` Number of columns
 - `rowptr::Vector{Ti}` Row `i` (1-based) in `nzval` vector at indices (1-based) `(rowptr[i]+(1-Bi)):(rowptr[i+1]+(1-Bi)-1)`
 - `colval::Vector{Ti}` Col indices (`Bi`-based) of stored values
 - `nzval::Vector{Tv}`  Stored values, typically non zeros
@@ -35,8 +35,8 @@ struct SparseMatrixCSR{Bi,Tv,Ti} <: AbstractSparseMatrix{Tv,Ti}
     nzval::Vector{Tv}) where {Bi,Tv,Ti<:Integer}
     @noinline throwsz(str, k, r) =
       throw(ArgumentError("$str must be $r, got $k"))
-    m < 0 && throwsz("m",">=0",m)
-    n < 0 && throwsz("n",">=0", n)
+    m < 0 && throwsz("m", m, ">=0")
+    n < 0 && throwsz("n", n, ">=0")
     length(rowptr) != m+1 && throwsz("length(rowptr)",m+1,length(rowptr))
     rowptr[end]-Bi != length(nzval) && throwsz("rowptr[end]-Bi",rowptr[m+1]-Bi, length(nzval))
     new{Bi,Tv,Ti}(Int(m), Int(n), rowptr, colval, nzval)
