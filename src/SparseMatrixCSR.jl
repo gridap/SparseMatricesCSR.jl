@@ -334,7 +334,7 @@ function smul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector, α::Numbe
     β != 0 ? rmul!(y, β) : fill!(y, zero(eltype(y)))
   end
   o = getoffset(A)
-  @batch for row = 1:size(y, 1)
+  for row = 1:size(y, 1)
     @inbounds for nz in nzrange(A,row)
       col = A.colval[nz]+o
       y[row] += A.nzval[nz]*v[col]*α
