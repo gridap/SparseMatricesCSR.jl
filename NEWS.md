@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.12] - 2026.03.12
+
+- Minor fixes in documentation.
+- Remove unnecessary multithreading from non-multithreaded SpMv kernel.
+
 ## [0.6.11] - 2026.03.10
 
 - Add multithreading support for SpMv kernels.
