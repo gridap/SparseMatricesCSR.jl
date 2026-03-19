@@ -4,7 +4,7 @@ using SparseArrays
 using LinearAlgebra
 using SuiteSparse
 
-import Base: convert, copy, size, getindex, setindex!, show, count, *, IndexStyle
+import Base: convert, copy, size, getindex, setindex!, show, count, *, IndexStyle, transpose
 import LinearAlgebra: mul!, lu, lu!
 import SparseArrays: nnz, getnzval, nonzeros, nzvalview, nzrange
 import SparseArrays: findnz, rowvals, getnzval, issparse
