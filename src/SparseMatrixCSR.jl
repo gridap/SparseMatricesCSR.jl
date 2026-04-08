@@ -103,6 +103,24 @@ sparsecsr(::Val{Bi},I,J,V,m,n) where Bi = SparseMatrixCSR{Bi}(transpose(sparse(J
 sparsecsr(::Val{Bi},I,J,V,m,n,combine) where Bi = SparseMatrixCSR{Bi}(transpose(sparse(J,I,V,n,m,combine)))
 dimlub(I) = isempty(I) ? 0 : Int(maximum(I))
 
+"""
+    spzeroscsr(args...)
+
+Crate a `SparseMatricesCSR` of all zeros
+"""
+spzeroscsr(m::Integer,n::Integer) = SparseMatrixCSR(transpose(spzeros(n,m)))
+spzeroscsr(::Type{Tv},m::Integer,n::Integer) where Tv = SparseMatrixCSR(transpose(spzeros(Tv,n,m)))
+spzeroscsr(::Type{Tv},::Type{Ti},m::Integer,n::Integer) where {Tv,Ti} = SparseMatrixCSR(transpose(spzeros(Tv,Ti,n,m)))
+# de-splatting variants
+spzeroscsr(sz::Tuple{Integer,Integer}) = SparseMatrixCSR(transpose(spzeros((sz[2],sz[1]))))
+spzeroscsr(::Type{Tv},sz::Tuple{Integer,Integer}) where Tv = SparseMatrixCSR(transpose(spzeros((sz[2],sz[1]))))
+spzeroscsr(::Type{Tv},::Type{Ti},sz::Tuple{Integer,Integer}) where {Ti,Tv} = SparseMatrixCSR(transpose(spzeros(Tv,Ti,(sz[2],sz[1]))))
+# below methods require julia 1.10 or later
+spzeroscsr(I::AbstractVector,J::AbstractVector) = SparseMatrixCSR(transpose(spzeros(J,I)))
+spzeroscsr(I::AbstractVector,J::AbstractVector,m,n) = SparseMatrixCSR(transpose(spzeros(J,I,n,m)))
+spzeroscsr(::Type{Tv},I::AbstractVector,J::AbstractVector,m,n) where Tv = SparseMatrixCSR(transpose(spzeros(Tv,J,I,n,m)))
+
+
 Base.convert(::Type{T},a::T) where T<:SparseMatrixCSR = a
 function Base.convert(
   ::Type{SparseMatrixCSR{Bi,Tv,Ti}},a::SparseMatrixCSR{Bi}) where {Bi,Tv,Ti}
