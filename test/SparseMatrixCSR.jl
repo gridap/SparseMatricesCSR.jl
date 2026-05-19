@@ -139,6 +139,43 @@ function test_csr(Bi,Tv,Ti)
     @test nnz(A) == length(SparseArrays.nzvalview(A)) == 3
     @test SparseArrays.nzvalview(A) == [4., 5, 6]
   end
+
+  # spzeroscsr tests
+  csc = spzeros(10, 9)
+  csr = spzeroscsr(10, 9)
+  @test csc == csr
+
+  csc = spzeros(Tv, 10, 9)
+  csr = spzeroscsr(Tv, 10, 9)
+  @test csc == csr
+
+  csc = spzeros(Tv, Ti, 10, 9)
+  csr = spzeroscsr(Tv, Ti, 10, 9)
+  @test csc == csr
+
+  csc = spzeros((10, 9))
+  csr = spzeroscsr((10, 9))
+  @test csc == csr
+
+  csc = spzeros(Tv, (10, 9))
+  csr = spzeroscsr(Tv, (10, 9))
+  @test csc == csr
+
+  csc = spzeros(Tv, Ti, (10, 9))
+  csr = spzeroscsr(Tv, Ti, (10, 9))
+  @test csc == csr
+
+  csc = spzeros(I, J)
+  csr = spzeroscsr(I, J)
+  @test csc == csr
+
+  csc = spzeros(I, J, maxrows, maxcols)
+  csr = spzeroscsr(I, J, maxrows, maxcols)
+  @test csc == csr
+
+  csc = spzeros(Tv, I, J, maxrows, maxcols)
+  csr = spzeroscsr(Tv, I, J, maxrows, maxcols)
+  @test csc == csr
 end
 
 function test_lu(Bi,I,J,V)

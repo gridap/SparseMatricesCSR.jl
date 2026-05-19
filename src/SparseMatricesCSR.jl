@@ -13,6 +13,7 @@ export SparseMatrixCSR
 export SymSparseMatrixCSR
 export sparsecsr, symsparsecsr
 export colvals, getBi, getoffset
+export spzeroscsr
 
 import Polyester: @batch
 import Atomix: @atomic
@@ -33,7 +34,7 @@ end # module
 # DONE getrowptr
 # DONE getnzval
 # DONE getcolval
-# TODO spzeros
+# DONE spzeros
 # TODO spdiagm
 # TODO blockdiag
 # TODO sprand
