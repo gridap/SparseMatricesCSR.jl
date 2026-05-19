@@ -134,6 +134,73 @@ function Base.copy(a::SparseMatrixCSR{Bi}) where Bi
   SparseMatrixCSR{Bi}(a.m,a.n,copy(a.rowptr),copy(a.colval),copy(a.nzval))
 end
 
+widelength(x::SparseMatrixCSR) = prod(Int64.(size(x)))
+
+function Base.sizehint!(S::SparseMatrixCSR, n::Integer)
+    nhint = min(n, widelength(S))
+    sizehint!(getcolval(S), nhint)
+    sizehint!(nonzeros(S),  nhint)
+    return S
+end
+
+Base.adjoint(A::SparseMatrixCSR) = Adjoint(A)
+Base.transpose(A::SparseMatrixCSR) = Transpose(A)
+Base.copy(A::Transpose{<:Any,<:SparseMatrixCSR}) =
+    ftranspose_csr(A.parent, identity)
+Base.copy(A::Adjoint{<:Any,<:SparseMatrixCSR}) =
+    ftranspose_csr(A.parent, adjoint)
+
+function ftranspose_csr(A::SparseMatrixCSR{Bi,TvA,Ti}, f::Function, eltype::Type{Tv} = TvA) where {Bi,Tv,TvA,Ti}
+    X = SparseMatrixCSR{Bi}(size(A, 2), size(A, 1),
+                        ones(Ti, size(A, 2)+1),
+                        Vector{Ti}(undef, 0),
+                        Vector{Tv}(undef, 0))
+    sizehint!(X, nnz(A))
+    return halfperm_csr!(X, A, axes(A,1), f)
+end
+
+function halfperm_csr!(X::SparseMatrixCSR{Bi,Tv,Ti}, A::SparseMatrixCSR{Bi,TvA,Ti},
+        q::AbstractVector{<:Integer}, f::F = identity) where {Bi,Tv,TvA,Ti,F<:Function}
+    _computecolptrs_halfperm_csr!(X, A)
+    _distributevals_halfperm_csr!(X, A, q, f)
+    return X
+end
+
+function _computecolptrs_halfperm_csr!(X::SparseMatrixCSR{Bi,Tv,Ti}, A::SparseMatrixCSR{Bi,TvA,Ti}) where {Bi,Tv,TvA,Ti}
+    # Compute transpose(A[:,q])'s row counts. Store shifted forward one position in X.rowptr.
+    fill!(X.rowptr, 0)
+    o = getoffset(A)
+    @inbounds for k in 1:nnz(A)
+        X.rowptr[A.colval[k] + o + 1] += 1
+    end
+    # Compute transpose(A[:,q])'s row pointers. Store shifted forward one position in X.rowptr.
+    X.rowptr[1] = Bi
+    countsum = Bi
+    @inbounds for k in 2:(size(A, 2) + 1)
+        overwritten = X.rowptr[k]
+        X.rowptr[k] = countsum
+        countsum += overwritten
+    end
+end
+
+function _distributevals_halfperm_csr!(X::SparseMatrixCSR{Bi,Tv,Ti},
+        A::SparseMatrixCSR{Bi,TvA,Ti}, q::AbstractVector{<:Integer}, f::F) where {Bi,Tv,TvA,Ti,F<:Function}
+    resize!(X.nzval, nnz(A))
+    resize!(X.colval, nnz(A))
+    o = getoffset(A)
+    @inbounds for Xi in axes(A,1)
+        Aj = q[Xi]
+        for Ak in nzrange(A, Aj)
+            Ai = A.colval[Ak] + o
+            Xk = X.rowptr[Ai + 1]
+            X.colval[Xk] = Xi - 1 + Bi  # since colval are Bi-based
+            X.nzval[Xk] = f(A.nzval[Ak])
+            X.rowptr[Ai + 1] += 1
+        end
+    end
+    return
+end
+
 _copy_and_increment(x) = copy(x) .+ 1
 
 function LinearAlgebra.fillstored!(a::SparseMatrixCSR,v)
@@ -220,6 +287,8 @@ getrowptr(S::SparseMatrixCSR) = S.rowptr
 getnzval(S::SparseMatrixCSR) = S.nzval
 getcolval(S::SparseMatrixCSR) = S.colval
 
+colvals(S::SparseMatrixCSR) = S.colval
+
 """
     getBi(S::SparseMatrixCSR{Bi}) where {Bi}
 
@@ -263,7 +332,7 @@ nonzeros(S::SparseMatrixCSR) = S.nzval
 nzvalview(S::SparseMatrixCSR) = view(nonzeros(S), 1:nnz(S))
 
 """
-    colvals(S::SparseMatrixCSR{Bi}) where {Bi}
+    colvals(S::SparseMatrixCSR)
 
 Return a vector of the col indices of `S`. The stored values are indexes to arrays
 with `Bi`-based indexing, but the `colvals(S)` array itself is a standard 1-based
@@ -273,15 +342,15 @@ Providing access to how the col indices are stored internally
 can be useful in conjunction with iterating over structural
 nonzero values. See also [`nonzeros`](@ref) and [`nzrange`](@ref).
 """
-colvals(S::SparseMatrixCSR) = S.colval
+
 
 """
-    nzrange(S::SparseMatrixCSR{Bi}, row::Integer) where {Bi}
-
-Return the range of indices to the structural nonzero values of a
-sparse matrix row. The returned range of indices is always 1-based even for `Bi != 1`.
+    nzrange(S::SparseMatrixCSR{Bi}, row::Integer)
+    
+    Return the range of indices to the structural nonzero values of a
+    sparse matrix row. The returned range of indices is always 1-based even for `Bi != 1`.
 """
-nzrange(S::SparseMatrixCSR{Bi}, row::Integer) where {Bi} = S.rowptr[row]+getoffset(S):S.rowptr[row+1]-Bi
+    nzrange(S::SparseMatrixCSR{Bi}, row::Integer) where {Bi} = S.rowptr[row]+getoffset(S):S.rowptr[row+1]-Bi
 
 """
     findnz(S::SparseMatrixCSR{Bi,Tv,Ti})

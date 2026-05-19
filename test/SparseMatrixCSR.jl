@@ -139,6 +139,26 @@ function test_csr(Bi,Tv,Ti)
     @test nnz(A) == length(SparseArrays.nzvalview(A)) == 3
     @test SparseArrays.nzvalview(A) == [4., 5, 6]
   end
+
+  # Test transpose
+  CSC = sparse(I,J,V,maxrows,maxcols)
+  if Bi == 1
+    CSR = sparsecsr(I,J,V,maxrows,maxcols)
+    @test CSR' == CSC'
+    @test copy(CSR') == CSC'
+    @test CSR' == transpose(CSR)
+    @test copy(CSR') == transpose(CSR)
+    @test CSR' == adjoint(CSR)
+    @test typeof(copy(CSR')) == typeof(copy(transpose(CSR))) == SparseMatrixCSR{Bi,Tv,Ti}
+  end
+  # Rectangular matrix transpose
+  A = Tv[7 0 -3 0 -1 0;
+    2 8 0 0 0 0;
+    0 0 1 0 0 0;
+    0 0 0 -2 0 6]
+  As = sparsecsr(A)
+  @test As' == transpose(As) == adjoint(As) == sparse(A')
+  @test typeof(copy(As')) == typeof(copy(transpose(As))) 
 end
 
 function test_lu(Bi,I,J,V)
