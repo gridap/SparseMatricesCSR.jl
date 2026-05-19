@@ -9,8 +9,8 @@ The standard way of constructing `SparseMatrixCSR` is through the
 
 # Properties
 
-- `m::Int` Number of columns
-- `n::Int` Number of rows
+- `m::Int` Number of rows
+- `n::Int` Number of columns
 - `rowptr::Vector{Ti}` Row `i` (1-based) in `nzval` vector at indices (1-based) `(rowptr[i]+(1-Bi)):(rowptr[i+1]+(1-Bi)-1)`
 - `colval::Vector{Ti}` Col indices (`Bi`-based) of stored values
 - `nzval::Vector{Tv}`  Stored values, typically non zeros
@@ -35,9 +35,9 @@ struct SparseMatrixCSR{Bi,Tv,Ti} <: AbstractSparseMatrix{Tv,Ti}
     nzval::Vector{Tv}) where {Bi,Tv,Ti<:Integer}
     @noinline throwsz(str, k, r) =
       throw(ArgumentError("$str must be $r, got $k"))
-    m < 0 && throwsz("m",">=0",m)
-    n < 0 && throwsz("n",">=0", n)
-    length(rowptr) != m+1 && throwsz("lengh(rowptr)",m+1,length(rowptr))
+    m < 0 && throwsz("m", m, ">=0")
+    n < 0 && throwsz("n", n, ">=0")
+    length(rowptr) != m+1 && throwsz("length(rowptr)",m+1,length(rowptr))
     rowptr[end]-Bi != length(nzval) && throwsz("rowptr[end]-Bi",rowptr[m+1]-Bi, length(nzval))
     new{Bi,Tv,Ti}(Int(m), Int(n), rowptr, colval, nzval)
   end
@@ -56,16 +56,16 @@ function SparseMatrixCSR(a::Transpose{Tv,<:SparseMatrixCSC} where Tv)
 end
 
 """
-    SparseMatrixCSR(a::SparseMatrixCSC}
+    SparseMatrixCSR(a::SparseMatrixCSC)
 
-Build a 1-based `SparseMatrixCSR` from a `SparseMatrixCSC`. 
+Build a 1-based `SparseMatrixCSR` from a `SparseMatrixCSC`.
 """
 SparseMatrixCSR(a::SparseMatrixCSC) = SparseMatrixCSR(transpose(sparse(transpose(a))))
 
 """
-    SparseMatrixCSR(a::AbstractMatrix}
+    SparseMatrixCSR(a::AbstractMatrix)
 
-Build a 1-based `SparseMatrixCSR` from an `AbstractMatrix`. 
+Build a 1-based `SparseMatrixCSR` from an `AbstractMatrix`.
 """
 SparseMatrixCSR(a::AbstractMatrix) = SparseMatrixCSR(sparse(a))
 
@@ -103,6 +103,24 @@ sparsecsr(::Val{Bi},I,J,V,m,n) where Bi = SparseMatrixCSR{Bi}(transpose(sparse(J
 sparsecsr(::Val{Bi},I,J,V,m,n,combine) where Bi = SparseMatrixCSR{Bi}(transpose(sparse(J,I,V,n,m,combine)))
 dimlub(I) = isempty(I) ? 0 : Int(maximum(I))
 
+"""
+    spzeroscsr(args...)
+
+Crate a `SparseMatricesCSR` of all zeros
+"""
+spzeroscsr(m::Integer,n::Integer) = SparseMatrixCSR(transpose(spzeros(n,m)))
+spzeroscsr(::Type{Tv},m::Integer,n::Integer) where Tv = SparseMatrixCSR(transpose(spzeros(Tv,n,m)))
+spzeroscsr(::Type{Tv},::Type{Ti},m::Integer,n::Integer) where {Tv,Ti} = SparseMatrixCSR(transpose(spzeros(Tv,Ti,n,m)))
+# de-splatting variants
+spzeroscsr(sz::Tuple{Integer,Integer}) = SparseMatrixCSR(transpose(spzeros((sz[2],sz[1]))))
+spzeroscsr(::Type{Tv},sz::Tuple{Integer,Integer}) where Tv = SparseMatrixCSR(transpose(spzeros((sz[2],sz[1]))))
+spzeroscsr(::Type{Tv},::Type{Ti},sz::Tuple{Integer,Integer}) where {Ti,Tv} = SparseMatrixCSR(transpose(spzeros(Tv,Ti,(sz[2],sz[1]))))
+# below methods require julia 1.10 or later
+spzeroscsr(I::AbstractVector,J::AbstractVector) = SparseMatrixCSR(transpose(spzeros(J,I)))
+spzeroscsr(I::AbstractVector,J::AbstractVector,m,n) = SparseMatrixCSR(transpose(spzeros(J,I,n,m)))
+spzeroscsr(::Type{Tv},I::AbstractVector,J::AbstractVector,m,n) where Tv = SparseMatrixCSR(transpose(spzeros(Tv,J,I,n,m)))
+
+
 Base.convert(::Type{T},a::T) where T<:SparseMatrixCSR = a
 function Base.convert(
   ::Type{SparseMatrixCSR{Bi,Tv,Ti}},a::SparseMatrixCSR{Bi}) where {Bi,Tv,Ti}
@@ -139,6 +157,11 @@ _copy_and_increment(x) = copy(x) .+ 1
 function LinearAlgebra.fillstored!(a::SparseMatrixCSR,v)
   fill!(a.nzval,v)
   a
+end
+
+function Base.fill!(a::SparseMatrixCSR,v)
+  iszero(v) && return LinearAlgebra.fillstored!(a,v)
+  invoke(Base.fill!,Tuple{AbstractMatrix,typeof(v)},a,v)
 end
 
 function LinearAlgebra.rmul!(a::SparseMatrixCSR,v::Number)
@@ -315,6 +338,14 @@ count(pred, S::SparseMatrixCSR) = count(pred, nzvalview(S))
 count(S::SparseMatrixCSR) = count(i->true, nzvalview(S))
 
 function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector, α::Number, β::Number)
+  if Threads.nthreads() > 1
+    tmul!(y, A, v, α, β)
+  else
+    smul!(y, A, v, α, β)
+  end
+end
+
+function smul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector, α::Number, β::Number)
   A.n == size(v, 1) || throw(DimensionMismatch())
   A.m == size(y, 1) || throw(DimensionMismatch())
   if β != 1
@@ -330,7 +361,31 @@ function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector, α::Number
   return y
 end
 
+function tmul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector, α::Number, β::Number)
+  A.n == size(v, 1) || throw(DimensionMismatch())
+  A.m == size(y, 1) || throw(DimensionMismatch())
+  if β != 1
+    β != 0 ? rmul!(y, β) : fill!(y, zero(eltype(y)))
+  end
+  o = getoffset(A)
+  @batch for row = 1:size(y, 1)
+    @inbounds for nz in nzrange(A,row)
+      col = A.colval[nz]+o
+      y[row] += A.nzval[nz]*v[col]*α
+    end
+  end
+  return y
+end
+
 function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector)
+  if Threads.nthreads() > 1
+    tmul!(y, A, v)
+  else
+    smul!(y, A, v)
+  end
+end
+
+function smul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector)
   A.n == size(v, 1) || throw(DimensionMismatch())
   A.m == size(y, 1) || throw(DimensionMismatch())
   fill!(y, zero(eltype(y)))
@@ -344,7 +399,61 @@ function mul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector)
   return y
 end
 
+function tmul!(y::AbstractVector,A::SparseMatrixCSR,v::AbstractVector)
+  A.n == size(v, 1) || throw(DimensionMismatch())
+  A.m == size(y, 1) || throw(DimensionMismatch())
+  fill!(y, zero(eltype(y)))
+  o = getoffset(A)
+  @batch for row = 1:size(y, 1)
+    @inbounds for nz in nzrange(A,row)
+      col = A.colval[nz]+o
+      y[row] += A.nzval[nz]*v[col]
+    end
+  end
+  return y
+end
+
 *(A::SparseMatrixCSR, v::Vector) = (y = similar(v,size(A,1));mul!(y,A,v))
+
+function mul!(y::AbstractVector,A::Adjoint{<:Any, <:SparseMatrixCSR},v::AbstractVector)
+  if Threads.nthreads() > 1
+    tmul!(y, A, v)
+  else
+    smul!(y, A, v)
+  end
+end
+
+function smul!(y::AbstractVector,A::Adjoint{<:Any, <:SparseMatrixCSR},v::AbstractVector)
+  P = A.parent
+  P.n == size(y, 1) || throw(DimensionMismatch())
+  P.m == size(v, 1) || throw(DimensionMismatch())
+  fill!(y,zero(eltype(y)))
+  o = getoffset(P)
+  for row = 1:size(P, 1)
+    for nz in nzrange(P,row)
+      col = P.colval[nz]+o
+      y[col] += P.nzval[nz]*v[row]
+    end
+  end
+  return y
+end
+
+function tmul!(y::AbstractVector,A::Adjoint{<:Any, <:SparseMatrixCSR},v::AbstractVector)
+  P = A.parent
+  P.n == size(y, 1) || throw(DimensionMismatch())
+  P.m == size(v, 1) || throw(DimensionMismatch())
+  fill!(y,zero(eltype(y)))
+  o = getoffset(P)
+  @batch for row = 1:size(P, 1)
+    for nz in nzrange(P,row)
+      col = P.colval[nz]+o
+      @atomic y[col] += P.nzval[nz]*v[row]
+    end
+  end
+  return y
+end
+
+*(A::Adjoint{T, <:SparseMatrixCSR}, v::AbstractVector) where T = (y = similar(v, promote_type(eltype(v),T), size(A,1)); mul!(y, A, v))
 
 function show(io::IO, ::MIME"text/plain", S::SparseMatrixCSR)
   xnnz = nnz(S)
